@@ -2,7 +2,7 @@
 PROJECT_NAME := artisan_platform
 BUILD_DIR := target/release
 BIN_DIR := /opt/artisan_platform/bin
-BINARIES := ais_aggregator ais_gitmon ais_services ais_apache ais_security ais_manager
+BINARIES := ais_aggregator ais_gitmon ais_services ais_directive ais_security ais_manager
 #UNIFIED_NAMES := aggregator git_monitor services apache security manager
 
 # Default task check
@@ -27,7 +27,7 @@ copy:
 	cp $(BUILD_DIR)/ais_aggregator $(BIN_DIR)/ais_aggregator
 	cp $(BUILD_DIR)/ais_gitmon $(BIN_DIR)/ais_gitmon
 	cp $(BUILD_DIR)/ais_services $(BIN_DIR)/ais_services
-	cp $(BUILD_DIR)/ais_apache $(BIN_DIR)/ais_apache
+	cp $(BUILD_DIR)/ais_directive $(BIN_DIR)/ais_directive
 	cp $(BUILD_DIR)/ais_security $(BIN_DIR)/ais_security
 	cp $(BUILD_DIR)/ais_manager $(BIN_DIR)/ais_manager
 
@@ -51,7 +51,7 @@ configure_sshd:
 # Set capabilities for specific binaries
 setcap_permissions:
 	@setcap 'cap_chown,cap_fowner=eip' $(BIN_DIR)/ais_gitmon
-	@setcap 'cap_chown,cap_fowner=eip' $(BIN_DIR)/ais_apache
+	@setcap 'cap_chown,cap_fowner=eip' $(BIN_DIR)/ais_directive
 	@setcap 'cap_chown,cap_fowner=eip' $(BIN_DIR)/ais_security
 
 # Create directory and set ownership
@@ -109,6 +109,3 @@ test:
 	cargo test
 
 .PHONY: all update check build copy create_user install_deps configure_sshd setcap_permissions create_directory configure_auditd create_service_files configure_git clean test
-
-#key expires 7-27-24
-#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
