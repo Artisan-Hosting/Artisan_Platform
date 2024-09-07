@@ -1,0 +1,181 @@
+// This file monitors the directive.ais files and runs things like node, build scripts and so on
+// We copy the directive.ais file to a system directory, then we execute what needs to be done, Ie configure apache or node install whatever.
+// When change the directive_executed bool to true on the version we copied.
+// We save two hashes to ensure we aren't changing thing when they arent needed. We save a hash before copy. and we save a hash that we modify.
+
+use ais_common::{
+    apache::{create_apache_config, reload_apache},
+    common::{current_timestamp, AppName, AppStatus, Status},
+    directive::{self, parse_directive, scan_directories},
+    messages::report_status,
+    node::{create_node_systemd_service, run_npm_install},
+    systemd::{enable_now, reload_systemd_daemon},
+    version::Version,
+};
+use dusa_collection_utils::{
+    errors::{ErrorArray, ErrorArrayItem},
+    functions::open_file,
+    types::{ClonePath, PathType},
+};
+use std::{
+    fs,
+    io::{Read, Write},
+};
+
+pub const SYSTEM_DIRECTIVE_PATH: &str = "/opt/ais/directives";
+
+fn generate_directive_hash(directive_path: PathType) -> Result<String, ErrorArrayItem> {
+    let mut directive_file: std::fs::File = open_file(directive_path, false)?;
+    let mut directive_buffer: Vec<u8> = Vec::new();
+    directive_file
+        .read_to_end(&mut directive_buffer)
+        .map_err(|err| ErrorArrayItem::from(err))?;
+    let result = String::from_utf8(directive_buffer).map_err(|err| ErrorArrayItem::from(err))?;
+
+    Ok(result)
+}
+
+fn store_directive(directive_path: PathType) -> Result<(), ErrorArrayItem> {
+    if directive_path.exists() {
+        let new_directive_path = PathType::Content(format!(
+            "{}/{}",
+            SYSTEM_DIRECTIVE_PATH,
+            generate_directive_hash(directive_path.clone_path())?
+        ));
+        let bytes_copied = fs::copy(directive_path, new_directive_path)
+            .map_err(|err| ErrorArrayItem::from(err))?;
+        // just for sanity
+        if bytes_copied == 0 {
+            return Err(ErrorArrayItem::new(
+                dusa_collection_utils::errors::Errors::GeneralError,
+                String::from(
+                    "When coping the directive file,the operation reported the size was 0 ",
+                ),
+            ));
+        }
+
+        Ok(())
+    } else {
+        return Err(ErrorArrayItem::new(
+            dusa_collection_utils::errors::Errors::GeneralError,
+            String::from("There was no directive.ais file in the path given"),
+        ));
+    }
+}
+
+fn check_directive(directive_path: PathType) -> Result<bool, ErrorArrayItem> {
+    let new_directive_path = PathType::Content(format!(
+        "{}/{}",
+        SYSTEM_DIRECTIVE_PATH,
+        generate_directive_hash(directive_path.clone_path())?
+    ));
+
+    Ok(new_directive_path.exists())
+}
+
+/// This need the directive in the project folder
+async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayItem> {
+    let directive: ais_common::directive::Directive = parse_directive(&directive_path).await?;
+    let directive_parent: PathType = PathType::PathBuf(directive_path.clone().parent().expect("The parent dir of the directive is blank. Dieing to not change perm on root or something dumb").to_owned());
+
+    // Checking if we need to reconfigure apache
+    if directive.apache {
+        let changed = create_apache_config(&directive, &directive_parent)?;
+        match changed {
+            true => {
+                match reload_apache().await {
+                    Ok(b) => {
+                        if !b {
+                            eprintln!("My god we killed apache, quick email the admin");
+                            eprintln!("The apache config we rolled out most likely killed apache");
+                        }
+                    }
+                    Err(e) => return Err(e),
+                }
+                print!("Apache config updated for {:#?}", directive_parent);
+            }
+            false => (),
+        }
+    }
+
+    // Checking if the project is a node thing.
+    if directive.nodejs_bool {
+        // TODO add parsing logic for versions
+        let _version = ();
+
+        // build application
+        if let Ok(_) = run_npm_install(&directive_parent) {
+            println!("Npm dependencies installed for XXXX");
+        } else {
+            return Err(ErrorArrayItem::new(
+                dusa_collection_utils::errors::Errors::GeneralError,
+                String::from("An error occurred while installing npm dependencies"),
+            ));
+        };
+
+        // create system d service file
+        let exec_start: &String = &format!("/usr/bin/npm start"); // get this from directive
+        let description: &str = &format!("Ais project id {}", &directive_parent);
+        let service_file_data =
+            create_node_systemd_service(exec_start, &directive_parent, description)?;
+
+        // Write the file
+        let service_id: String = directive_parent.to_string().replace("/var/www/ais", "");
+
+        let service_path: PathType =
+            PathType::Content(format!("/etc/systemd/system/{}.service", service_id));
+        let mut service_file: fs::File = open_file(service_path, true)?;
+        service_file
+            .write(service_file_data.as_bytes())
+            .map_err(|err| ErrorArrayItem::from(err))?;
+
+        // reload daemon
+        reload_systemd_daemon()?;
+
+        // enable process
+        enable_now(format!("{}", service_id))?;
+    }
+
+    // report to the aggregator
+    let status = Status {
+        app_name: AppName::Apache,
+        app_status: AppStatus::Running,
+        timestamp: current_timestamp(),
+        version: Version::get(),
+    };
+
+    if let Err(err) = report_status(status).await {
+        Err(err)
+    } else {
+        Ok(())
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let base_path = "/var/www/ais";
+    let directive_paths = match scan_directories(base_path).await {
+        Ok(d) => d,
+        Err(e) => {
+            ErrorArray::new(vec![e]).display(true);
+            unreachable!("scanning dir FAILED")
+        }
+    };
+
+    for directive_path_string in directive_paths {
+        let directive_path: PathType = PathType::PathBuf(directive_path_string);
+
+        // If we haven't already stored the directive data
+        if !check_directive(directive_path.clone()).expect("Error while opening the directive path") {
+            executing_directive(directive_path.clone_path()).await.expect("Error while executing the directive");
+            if store_directive(directive_path).is_ok() {
+                return
+            } else {
+                print!("we have executed the directive but cannot store that we have. The directive may be in a loop");
+                return
+            }
+        }
+
+    }
+
+}

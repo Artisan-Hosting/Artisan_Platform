@@ -1,0 +1,155 @@
+[package]
+name = "artisan_platform"
+version = "1.3.0"
+edition = "2021"
+authors = [
+    "Artisan Hosting",
+    "Darrion Whitfield <dwhitfield@ramfield.net>"
+]
+description = "The main services of the artisan platform to allow communication and management of linux system services"
+homepage = "https://docs.artisanhosting.net"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# Asynchronous runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization/deserialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Unix domain sockets and system operations
+tokio-uds = "0.2"
+nix = "0.20"
+rand = "0.8"
+
+# Git operations
+git2 = "0.18.3"
+
+# Directory traversal
+walkdir = "2.3"
+
+# Hexadecimal encoding
+hex = "0.4.3"
+
+# User management
+users = "0.9.0"
+
+# Custom libraries
+recs_lib = "2.5.2"
+dusa_collection_utils = "2.5.3"
+dusa = "1.2.2"
+
+# Logging
+simple_tmp_logger = "1.2.1"
+
+# Pretty printing
+simple_pretty = "0.1.0"
+
+# TLS (Transport Layer Security)
+native-tls = "0.2"
+tokio-native-tls = "0.3"
+
+# SMTP client
+lettre = "0.11.0"
+
+# Linux Standard Base release information
+lsb_release = "0.1.0"
+
+# System information
+sysinfo = "0.30.13"
+
+# Get hostname
+gethostname = "0.4.3"
+
+# System control
+systemctl = "0.3.1"
+
+# Date and time manipulation
+chrono = "0.4"
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json", "native-tls"] }
+
+# Terminal UI
+crossterm = "0.24"
+
+# My system library 
+
+[dependencies.uuid]
+version = "1.10.0"
+features = [
+    "v4",                # Lets you generate random UUIDs
+    "fast-rng",          # Use a faster (but still sufficiently random) RNG
+    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+]
+
+# Terminal UI
+[dependencies.tui]
+version = "0.16"
+features = [
+    "crossterm"
+]
+
+# Binary targets
+[[bin]]
+name = "ais_aggregator"
+path = "src/aggregator/aggregator.rs"
+
+[[bin]]
+name = "aggregator_client_test"
+path = "src/aggregator/client.rs"
+
+[[bin]]
+name = "ais_gitmon"
+path = "src/github/main.rs"
+
+[[bin]]
+name = "query"
+path = "src/cli/query.rs"
+
+[[bin]]
+name = "ais_credentials"
+path = "src/cli/git_credentials.rs"
+
+[[bin]]
+name = "ais_mailer"
+path = "src/mailer/main.rs"
+
+[[bin]]
+name = "ais_welcome"
+path = "src/welcome/main.rs"
+
+[[bin]]
+name = "ais_services"
+path = "src/systemd/main.rs"
+
+[[bin]]
+name = "ais_security"
+path = "src/tracking/main.rs"
+
+[[bin]]
+name = "ais_manager"
+path = "src/manager/server/main.rs"
+
+[[bin]]
+name = "ais_client"
+path = "src/manager/client.rs"
+
+[[bin]]
+name = "ais_manager_tui"
+path = "src/manager/tui/main.rs"
+
+[[bin]]
+name = "ais_directive"
+path = "src/directive/main.rs"
+
+[[bin]]
+name = "mail_test"
+path = "src/mail.rs"
+
+# Library targets
+[lib]
+name = "ais_common"
+path = "src/common/lib/main.rs"
+test = false
