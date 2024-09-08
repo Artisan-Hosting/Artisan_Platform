@@ -6,7 +6,7 @@
 use ais_common::{
     apache::{create_apache_config, reload_apache},
     common::{current_timestamp, AppName, AppStatus, Status},
-    directive::{self, parse_directive, scan_directories},
+    directive::{parse_directive, scan_directories},
     messages::report_status,
     node::{create_node_systemd_service, run_npm_install},
     systemd::{enable_now, reload_systemd_daemon},
@@ -20,6 +20,8 @@ use dusa_collection_utils::{
 use std::{
     fs,
     io::{Read, Write},
+    thread,
+    time::Duration,
 };
 
 pub const SYSTEM_DIRECTIVE_PATH: &str = "/opt/ais/directives";
@@ -45,7 +47,9 @@ fn store_directive(directive_path: PathType) -> Result<(), ErrorArrayItem> {
 
         print!("{}", new_directive_path);
 
-        make_file(new_directive_path.clone_path(), ErrorArray::new_container()).uf_unwrap().unwrap();
+        make_file(new_directive_path.clone_path(), ErrorArray::new_container())
+            .uf_unwrap()
+            .unwrap();
 
         let bytes_copied = fs::copy(directive_path, new_directive_path)
             .map_err(|err| ErrorArrayItem::from(err))?;
@@ -110,7 +114,7 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
 
         // build application
         if let Ok(_) = run_npm_install(&directive_parent) {
-            println!("Npm dependencies installed for XXXX");
+            println!("Npm dependencies installed for {}", directive_path);
         } else {
             return Err(ErrorArrayItem::new(
                 dusa_collection_utils::errors::Errors::GeneralError,
@@ -159,28 +163,82 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
 #[tokio::main]
 async fn main() {
     let base_path = "/var/www/ais";
-    let directive_paths = match scan_directories(base_path).await {
-        Ok(d) => d,
-        Err(e) => {
-            ErrorArray::new(vec![e]).display(true);
-            unreachable!("scanning dir FAILED")
-        }
-    };
 
-    for directive_path_string in directive_paths {
-        let directive_path: PathType = PathType::PathBuf(directive_path_string);
+    thread::spawn(|| loop {
+        thread::sleep(Duration::from_secs(120)); // Set at a longer interval to reset errors if they occour
+    });
 
-        // If we haven't already stored the directive data
-        if !check_directive(directive_path.clone()).expect("Error while opening the directive path") {
-            executing_directive(directive_path.clone_path()).await.expect("Error while executing the directive");
-            if store_directive(directive_path).is_ok() {
-                return
-            } else {
-                print!("we have executed the directive but cannot store that we have. The directive may be in a loop");
-                return
+    loop {
+        let directive_paths = match scan_directories(base_path).await {
+            Ok(d) => d,
+            Err(e) => {
+                // Set the application status to warning in the aggregator as it's running with faults
+                let status: Status = Status {
+                    app_name: AppName::Github,
+                    app_status: AppStatus::Warning,
+                    timestamp: current_timestamp(),
+                    version: Version::get(),
+                };
+                if let Err(err) = report_status(status).await {
+                    ErrorArray::new(vec![e, err]).display(true)
+                }
+                unreachable!("Error scanning dirs")
+            }
+        };
+
+        for directive_path_string in directive_paths {
+            let directive_path: PathType = PathType::PathBuf(directive_path_string);
+
+            // If we haven't already stored the directive data
+            if !check_directive(directive_path.clone())
+                .expect("Error while opening the directive path")
+            {
+                if executing_directive(directive_path.clone_path())
+                    .await
+                    .is_err()
+                {
+                    // Set the application status to warning in the aggregator as it's running with faults
+                    let status: Status = Status {
+                        app_name: AppName::Directive,
+                        app_status: AppStatus::Warning,
+                        timestamp: current_timestamp(),
+                        version: Version::get(),
+                    };
+                    if let Err(err) = report_status(status).await {
+                        ErrorArray::new(vec![err]).display(false)
+                    }
+                }
+
+                if store_directive(directive_path).is_ok() {
+                    return;
+                } else {
+                    print!("we have executed the directive but cannot store that we have. The directive may be in a loop");
+                    // Set the application status to warning in the aggregator as it's running with faults
+                    let status: Status = Status {
+                        app_name: AppName::Directive,
+                        app_status: AppStatus::Warning,
+                        timestamp: current_timestamp(),
+                        version: Version::get(),
+                    };
+                    if let Err(err) = report_status(status).await {
+                        ErrorArray::new(vec![err]).display(false)
+                    }
+                    return;
+                }
             }
         }
 
-    }
+        // Send okay
+        let status: Status = Status {
+            app_name: AppName::Directive,
+            app_status: AppStatus::Running,
+            timestamp: current_timestamp(),
+            version: Version::get(),
+        };
+        if let Err(err) = report_status(status).await {
+            ErrorArray::new(vec![err]).display(false)
+        }
 
+        thread::sleep(Duration::from_secs(25));
+    }
 }

@@ -297,7 +297,7 @@ mod tests {
             version: Version::get(),
         };
 
-        handle_status_update(state.clone(), status.clone()).await;
+        let _ = handle_status_update(state.clone(), status.clone()).await;
 
         let state_guard: tokio::sync::RwLockReadGuard<HashMap<_, Status>> =
             LockWithTimeout::try_read(&state).await.unwrap();

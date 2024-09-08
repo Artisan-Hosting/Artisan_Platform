@@ -69,7 +69,7 @@ async fn main() {
             }
         }
 
-        time::sleep(Duration::from_secs(10)).await; // Report status every 10 seconds
+        time::sleep(Duration::from_secs(20)).await; // Report status every 10 seconds
     }
 }
 

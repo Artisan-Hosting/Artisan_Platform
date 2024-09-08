@@ -52,6 +52,7 @@ pub enum AppStatus {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, PartialOrd, Ord, Eq, Hash)]
 pub enum AppName { // These are artisan_platform components 
     Github,
+    Directive,
     Apache,
     Systemd,
     // Firewall,
