@@ -14,7 +14,7 @@ use ais_common::{
 };
 use dusa_collection_utils::{
     errors::{ErrorArray, ErrorArrayItem},
-    functions::{make_file, open_file},
+    functions::{create_hash, make_file, open_file},
     types::{ClonePath, PathType},
 };
 use std::{
@@ -32,7 +32,7 @@ fn generate_directive_hash(directive_path: PathType) -> Result<String, ErrorArra
         .map_err(|err| ErrorArrayItem::from(err))?;
     let result = String::from_utf8(directive_buffer).map_err(|err| ErrorArrayItem::from(err))?;
 
-    Ok(result)
+    Ok(create_hash(result))
 }
 
 fn store_directive(directive_path: PathType) -> Result<(), ErrorArrayItem> {
