@@ -24,7 +24,7 @@ use std::{
     time::Duration,
 };
 
-pub const SYSTEM_DIRECTIVE_PATH: &str = "/opt/ais/directives";
+pub const SYSTEM_DIRECTIVE_PATH: &str = "/tmp";
 
 fn generate_directive_hash(directive_path: PathType) -> Result<String, ErrorArrayItem> {
     let mut directive_file: std::fs::File = open_file(directive_path, false)?;
