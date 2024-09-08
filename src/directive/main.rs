@@ -147,7 +147,7 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
 
     // report to the aggregator
     let status = Status {
-        app_name: AppName::Apache,
+        app_name: AppName::Directive,
         app_status: AppStatus::Running,
         timestamp: current_timestamp(),
         version: Version::get(),
@@ -174,7 +174,7 @@ async fn main() {
             Err(e) => {
                 // Set the application status to warning in the aggregator as it's running with faults
                 let status: Status = Status {
-                    app_name: AppName::Github,
+                    app_name: AppName::Directive,
                     app_status: AppStatus::Warning,
                     timestamp: current_timestamp(),
                     version: Version::get(),
