@@ -43,7 +43,7 @@ fn store_directive(directive_path: PathType) -> Result<(), ErrorArrayItem> {
             generate_directive_hash(directive_path.clone_path())?
         ));
 
-        make_file(new_directive_path.clone_path(), ErrorArray::new_container());
+        make_file(new_directive_path.clone_path(), ErrorArray::new_container()).uf_unwrap().unwrap();
 
         let bytes_copied = fs::copy(directive_path, new_directive_path)
             .map_err(|err| ErrorArrayItem::from(err))?;
