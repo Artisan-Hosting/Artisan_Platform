@@ -14,14 +14,11 @@ use ais_common::{
 };
 use dusa_collection_utils::{
     errors::{ErrorArray, ErrorArrayItem},
-    functions::{create_hash, make_file, open_file},
+    functions::{create_hash, make_file, open_file, truncate},
     types::{ClonePath, PathType},
 };
 use std::{
-    fs,
-    io::{Read, Write},
-    thread,
-    time::Duration,
+    fs, io::{Read, Write}, thread, time::Duration
 };
 
 pub const SYSTEM_DIRECTIVE_PATH: &str = "/tmp";
@@ -42,7 +39,7 @@ fn store_directive(directive_path: PathType) -> Result<(), ErrorArrayItem> {
         let new_directive_path = PathType::Content(format!(
             "{}/{}",
             SYSTEM_DIRECTIVE_PATH,
-            generate_directive_hash(directive_path.clone_path())?
+            truncate(&generate_directive_hash(directive_path.clone_path())?, 8)
         ));
 
         print!("{}", new_directive_path);
@@ -103,14 +100,16 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
                 }
                 print!("Apache config updated for {:#?}", directive_parent);
             }
-            false => (),
+            false => print!("The project {} needs no changes", directive_parent),
         }
     }
 
     // Checking if the project is a node thing.
     if directive.nodejs_bool {
-        // TODO add parsing logic for versions
-        let _version = ();
+        let _version = match directive.nodejs_version {
+            Some(d) => d,
+            None => String::from("22"),
+        };
 
         // build application
         if let Ok(_) = run_npm_install(&directive_parent) {
@@ -123,10 +122,14 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
         };
 
         // create system d service file
-        let exec_start: &String = &format!("/usr/bin/npm start"); // get this from directive
+        let exec_start = match directive.nodejs_exec_command {
+            Some(d) => d,
+            None => format!("/usr/bin/npm dev run"),
+        };
+        
         let description: &str = &format!("Ais project id {}", &directive_parent);
         let service_file_data =
-            create_node_systemd_service(exec_start, &directive_parent, description)?;
+            create_node_systemd_service(&exec_start, &directive_parent, description)?;
 
         // Write the file
         let service_id: String = directive_parent.to_string().replace("/var/www/ais/", "");
@@ -163,10 +166,6 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
 #[tokio::main]
 async fn main() {
     let base_path = "/var/www/ais";
-
-    thread::spawn(|| loop {
-        thread::sleep(Duration::from_secs(120)); // Set at a longer interval to reset errors if they occour
-    });
 
     loop {
         let directive_paths = match scan_directories(base_path).await {
