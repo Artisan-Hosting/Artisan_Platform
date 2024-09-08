@@ -14,7 +14,7 @@ use ais_common::{
 };
 use dusa_collection_utils::{
     errors::{ErrorArray, ErrorArrayItem},
-    functions::open_file,
+    functions::{make_file, open_file},
     types::{ClonePath, PathType},
 };
 use std::{
@@ -42,6 +42,9 @@ fn store_directive(directive_path: PathType) -> Result<(), ErrorArrayItem> {
             SYSTEM_DIRECTIVE_PATH,
             generate_directive_hash(directive_path.clone_path())?
         ));
+
+        make_file(new_directive_path.clone_path(), ErrorArray::new_container());
+
         let bytes_copied = fs::copy(directive_path, new_directive_path)
             .map_err(|err| ErrorArrayItem::from(err))?;
         // just for sanity
@@ -120,7 +123,7 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
             create_node_systemd_service(exec_start, &directive_parent, description)?;
 
         // Write the file
-        let service_id: String = directive_parent.to_string().replace("/var/www/ais", "");
+        let service_id: String = directive_parent.to_string().replace("/var/www/ais/", "");
 
         let service_path: PathType =
             PathType::Content(format!("/etc/systemd/system/{}.service", service_id));
