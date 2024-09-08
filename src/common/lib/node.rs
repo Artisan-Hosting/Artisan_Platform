@@ -15,7 +15,7 @@ ExecStart={}
 Restart=always
 # running as a user that has the permissions to bind to the ports needed
 User=ais
-Group=ais
+Group=nogroup
 Environment=PATH=/usr/bin:/usr/local/bin
 #Environment=NODE_ENV=production
 WorkingDirectory={}
