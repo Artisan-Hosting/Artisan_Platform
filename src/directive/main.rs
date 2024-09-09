@@ -135,6 +135,7 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
         let description: &str = &format!("Ais project id {}", &directive_parent);
         let service_file_data =
             create_node_systemd_service(&exec_start, &directive_parent, description)?;
+            print!("{}", create_node_systemd_service(&exec_start, &directive_parent, description)?);
 
         // Write the file
         let service_id: String = directive_parent.to_string().replace("/var/www/ais/", "");
