@@ -52,7 +52,7 @@ impl Version {
     pub fn get_raw() -> Self {
         Version {
             number: &VERSION,
-            code: AisCode::Production,
+            code: AisCode::ProductionCandidate,
         }
     }
 
