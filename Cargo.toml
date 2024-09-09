@@ -10,6 +10,9 @@ description = "The main services of the artisan platform to allow communication 
 homepage = "https://docs.artisanhosting.net"
 license = "MIT OR Apache-2.0"
 
+[dev-dependencies]
+tempfile = "3"
+
 [dependencies]
 # Asynchronous runtime
 tokio = { version = "1", features = ["full"] }

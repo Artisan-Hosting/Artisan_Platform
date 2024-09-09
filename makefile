@@ -41,7 +41,7 @@ create_user:
 
 # Install dependencies if apt is available
 install_deps:
-	@command -v apt >/dev/null 2>&1 && apt update && apt install -y auditd audispd-plugins openssh-server git gitsome || echo "apt not found, skipping dependency installation"
+	@command -v apt >/dev/null 2>&1 && apt update && apt install -y auditd audispd-plugins openssh-server git gitcli || echo "apt not found, skipping dependency installation"
 
 # Configure sshd to set Debug level to LOGLEVEL2
 configure_sshd:

@@ -111,6 +111,8 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
             None => String::from("22"),
         };
 
+        // TODO add check with nvm to ensure the correct version is installed. 
+
         // build application
         if let Ok(_) = run_npm_install(&directive_parent) {
             println!("Npm dependencies installed for {}", directive_path);
