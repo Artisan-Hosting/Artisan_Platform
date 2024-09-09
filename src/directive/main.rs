@@ -123,11 +123,14 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
             ));
         };
 
-        // create system d service file
-        let exec_start = match directive.nodejs_exec_command {
-            Some(d) => d,
-            None => format!("/usr/bin/npm dev run"),
-        };
+        // TODO MITOBYTE HAS THE WRONG VERSION of directive.ais
+        // // create system d service file
+        // let exec_start = match directive.nodejs_exec_command {
+        //     Some(d) => d,
+        //     None => format!("/usr/bin/npm dev run"),
+        // };
+
+        let exec_start = format!("/usr/bin/npm dev run");
         
         let description: &str = &format!("Ais project id {}", &directive_parent);
         let service_file_data =
