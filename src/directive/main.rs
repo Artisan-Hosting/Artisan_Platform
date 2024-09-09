@@ -73,7 +73,7 @@ fn check_directive(directive_path: PathType) -> Result<bool, ErrorArrayItem> {
     let new_directive_path = PathType::Content(format!(
         "{}/{}",
         SYSTEM_DIRECTIVE_PATH,
-        generate_directive_hash(directive_path.clone_path())?
+        truncate(&generate_directive_hash(directive_path.clone_path())?, 8)
     ));
 
     Ok(new_directive_path.exists())
