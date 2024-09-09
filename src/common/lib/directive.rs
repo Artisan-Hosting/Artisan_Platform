@@ -60,10 +60,9 @@ fn read_json_without_comments(file_path: PathType) -> Result<String, ErrorArrayI
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::{self, File};
+    use std::fs::File;
     use std::io::Write;
     use tempfile::tempdir;
-    use tokio::runtime::Runtime;
 
     #[tokio::test]
     async fn test_scan_directories() {
