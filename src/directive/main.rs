@@ -73,7 +73,7 @@ fn check_directive(directive_path: PathType) -> Result<bool, ErrorArrayItem> {
     let new_directive_path = PathType::Content(format!(
         "{}/{}",
         SYSTEM_DIRECTIVE_PATH,
-        generate_directive_hash(directive_path.clone_path())?
+        truncate(&generate_directive_hash(directive_path.clone_path())?, 8)
     ));
 
     Ok(new_directive_path.exists())
@@ -123,15 +123,19 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
             ));
         };
 
-        // create system d service file
-        let exec_start = match directive.nodejs_exec_command {
-            Some(d) => d,
-            None => format!("/usr/bin/npm dev run"),
-        };
+        // TODO MITOBYTE HAS THE WRONG VERSION of directive.ais
+        // // create system d service file
+        // let exec_start = match directive.nodejs_exec_command {
+        //     Some(d) => d,
+        //     None => format!("/usr/bin/npm dev run"),
+        // };
+
+        let exec_start = format!("/usr/bin/npm dev run");
         
         let description: &str = &format!("Ais project id {}", &directive_parent);
         let service_file_data =
             create_node_systemd_service(&exec_start, &directive_parent, description)?;
+            print!("{}", create_node_systemd_service(&exec_start, &directive_parent, description)?);
 
         // Write the file
         let service_id: String = directive_parent.to_string().replace("/var/www/ais/", "");
