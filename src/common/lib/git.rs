@@ -32,6 +32,7 @@ pub enum GitAction {
         repo_name: String,
         repo_owner: String,
         destination: PathType,
+        repo_branch: String,
     },
     Pull {
         target_branch: String,
@@ -73,16 +74,32 @@ impl GitAction {
             };
 
             match self {
+                // GitAction::Clone {
+                //     destination,
+                //     repo_name,
+                //     repo_owner,
+                // } => {
+                //     let url = format!("https://github.com/{}/{}.git", repo_owner, repo_name);
+                //     execute_git_command(&["clone", &url, &destination.to_string()])
+                //         .await
+                //         .map(|o| Some(o))
+                // }
                 GitAction::Clone {
                     destination,
                     repo_name,
                     repo_owner,
+                    repo_branch
                 } => {
                     let url = format!("https://github.com/{}/{}.git", repo_owner, repo_name);
-                    execute_git_command(&["clone", &url, &destination.to_string()])
-                        .await
-                        .map(|o| Some(o))
+                    execute_git_command(&[
+                        "clone", 
+                        "-b", 
+                        repo_branch,
+                        &url, 
+                        &destination.to_string()
+                    ]).await.map(|op| Some(op))
                 }
+                
                 GitAction::Pull {
                     target_branch,
                     destination,

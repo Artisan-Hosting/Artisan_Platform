@@ -129,9 +129,10 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
                 repo_name: auth.clone().repo,
                 repo_owner: auth.clone().user,
                 destination: git_project_path.clone_path(),
+                repo_branch: auth.clone().branch,
             };
             git_clone.execute().await?;
-            git_set_tracking.execute().await?;
+            // git_set_tracking.execute().await?;
 
             // Set ownership to the web user
             let webuser = get_id(SystemUsers::Www)?;
@@ -148,7 +149,7 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
             fetch_update.execute().await?; // Fetch the latest from the remote to get branch data
 
             // Ensure that after cloning, we force the branch switch
-            git_switch.execute().await?;
+            // git_switch.execute().await?;
         }
     }
 
