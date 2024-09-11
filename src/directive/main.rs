@@ -17,8 +17,12 @@ use dusa_collection_utils::{
     functions::{create_hash, make_file, open_file, truncate},
     types::{ClonePath, PathType},
 };
+use simple_pretty::{notice, warn};
 use std::{
-    fs, io::{Read, Write}, thread, time::Duration
+    fs::{self, File},
+    io::{Read, Write},
+    thread,
+    time::Duration,
 };
 
 pub const SYSTEM_DIRECTIVE_PATH: &str = "/tmp";
@@ -84,6 +88,8 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
     let directive: ais_common::directive::Directive = parse_directive(&directive_path).await?;
     let directive_parent: PathType = PathType::PathBuf(directive_path.clone().parent().expect("The parent dir of the directive is blank. Dieing to not change perm on root or something dumb").to_owned());
 
+    notice(&format!("Executing directive: {}", directive_parent));
+
     // Checking if we need to reconfigure apache
     if directive.apache {
         let changed = create_apache_config(&directive, &directive_parent)?;
@@ -111,7 +117,7 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
             None => String::from("22"),
         };
 
-        // TODO add check with nvm to ensure the correct version is installed. 
+        // TODO add check with nvm to ensure the correct version is installed.
 
         // build application
         if let Ok(_) = run_npm_install(&directive_parent) {
@@ -130,9 +136,10 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
         //     None => format!("/usr/bin/npm dev run"),
         // };
 
-        let exec_start = format!("/usr/bin/npm dev run");
-        
+        let exec_start = format!("/usr/bin/npm run dev");
+
         let description: &str = &format!("Ais project id {}", &directive_parent);
+
         let service_file_data =
             create_node_systemd_service(&exec_start, &directive_parent, description)?;
 
@@ -142,7 +149,12 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
         let service_path: PathType =
             PathType::Content(format!("/etc/systemd/system/{}.service", service_id));
 
+        make_file(service_path.clone_path(), ErrorArray::new_container())
+            .uf_unwrap()
+            .map_err(|mut ea| ea.pop())?;
+        
         let mut service_file: fs::File = open_file(service_path, true)?;
+        // let mut service_file: fs::File = File::open(service_path)?;
 
         service_file
             .write(service_file_data.as_bytes())
@@ -199,19 +211,25 @@ async fn main() {
             if !check_directive(directive_path.clone())
                 .expect("Error while opening the directive path")
             {
-                if executing_directive(directive_path.clone_path())
-                    .await
-                    .is_err()
-                {
-                    // Set the application status to warning in the aggregator as it's running with faults
-                    let status: Status = Status {
-                        app_name: AppName::Directive,
-                        app_status: AppStatus::Warning,
-                        timestamp: current_timestamp(),
-                        version: Version::get(),
-                    };
-                    if let Err(err) = report_status(status).await {
-                        ErrorArray::new(vec![err]).display(false)
+                match executing_directive(directive_path.clone_path()).await {
+                    Ok(_) => (),
+                    Err(e1) => {
+                        let status: Status = Status {
+                            app_name: AppName::Directive,
+                            app_status: AppStatus::Warning,
+                            timestamp: current_timestamp(),
+                            version: Version::get(),
+                        };
+
+                        let e2 = report_status(status).await;
+
+                        match e2 {
+                            Ok(_) => warn(&format!(
+                                "Error executing directive, {}: {}",
+                                directive_path, e1
+                            )),
+                            Err(e2) => ErrorArray::new(vec![e1, e2]).display(true),
+                        }
                     }
                 }
 

@@ -13,6 +13,7 @@ After=network.target
 [Service]
 PermissionsStartOnly=false
 ExecStart={}
+ExecStartPre=/usr/bin/npm run build
 Restart=always
 # running as a user that has the permissions to bind to the ports needed
 User=www-data
