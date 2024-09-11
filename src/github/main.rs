@@ -79,7 +79,10 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
         let ac = auth.clone();
         let git_project_path = PathType::Content(format!(
             "/var/www/ais/{}",
-            truncate(&create_hash(format!("{}-{}-{}", ac.branch, ac.repo, ac.user)), 8)
+            truncate(
+                &create_hash(format!("{}-{}-{}", ac.branch, ac.repo, ac.user)),
+                8
+            )
         ));
 
         let git_switch = GitAction::Switch {

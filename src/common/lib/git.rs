@@ -78,18 +78,20 @@ impl GitAction {
                     destination,
                     repo_name,
                     repo_owner,
-                    repo_branch
+                    repo_branch,
                 } => {
                     let url = format!("https://github.com/{}/{}.git", repo_owner, repo_name);
                     execute_git_command(&[
-                        "clone", 
-                        "-b", 
+                        "clone",
+                        "-b",
                         repo_branch,
-                        &url, 
-                        &destination.to_string()
-                    ]).await.map(|op| Some(op))
+                        &url,
+                        &destination.to_string(),
+                    ])
+                    .await
+                    .map(|op| Some(op))
                 }
-                
+
                 GitAction::Pull {
                     target_branch,
                     destination,
@@ -183,18 +185,18 @@ impl GitAction {
                         Ok(output) => {
                             if !output.status.success() {
                                 let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-                                return Err(ErrorArrayItem::new(Errors::GeneralError, format!(
-                                    "Failed to fetch from remote: {}",
-                                    stderr
-                                )));
+                                return Err(ErrorArrayItem::new(
+                                    Errors::GeneralError,
+                                    format!("Failed to fetch from remote: {}", stderr),
+                                ));
                             }
                             simple_pretty::notice("Fetched latest updates from remote repository");
                             Ok(None)
                         }
-                        Err(e) => Err(ErrorArrayItem::new(Errors::GeneralError, format!(
-                            "Error executing git fetch: {}",
-                            e
-                        ))),
+                        Err(e) => Err(ErrorArrayItem::new(
+                            Errors::GeneralError,
+                            format!("Error executing git fetch: {}", e),
+                        )),
                     }
                 }
 
