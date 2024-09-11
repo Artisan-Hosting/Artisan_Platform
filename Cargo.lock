@@ -122,7 +122,7 @@ dependencies = [
 
 [[package]]
 name = "artisan_platform"
-version = "1.4.2"
+version = "1.4.3"
 dependencies = [
  "base64 0.13.1",
  "chrono",

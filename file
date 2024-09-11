@@ -3,3 +3,5 @@ Github
 
 AHPN-1
 30312d322e352e322d31306233613533646232653235666566366239332d310992aa38ff477bf0c34627a0bcfbf67423f6cca55dc0ff70af37061fc39d79166bc25790d00fc4405bfdf238b7aa74997910dd2956b1b36ee33a86d94ee0eccf4f971643a20ecd7d76171089b049e20264b2914ea1ab54d5a8323d94b465d2325T6pYVcQvEXjPWND0dd4fbf7bf7a8a9eeea59bee790526bdbbff3059dcc51013f2bfe273380a5f1b-a01807ae22efbcc31cdbcb895d68746e-1
+
+git branch -r | grep -v '\->' | sed "s,\x1B\[[0-9;]*[a-zA-Z],,g" | while read remote; do git branch --track "${remote#origin/}" "$remote"; done
