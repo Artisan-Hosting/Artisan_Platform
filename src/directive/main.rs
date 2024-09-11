@@ -19,8 +19,9 @@ use dusa_collection_utils::{
 };
 use simple_pretty::{notice, warn};
 use std::{
-    fs,
+    fs::{self, File},
     io::{Read, Write},
+    path::Path,
     thread,
     time::Duration,
 };
@@ -28,14 +29,22 @@ use std::{
 pub const SYSTEM_DIRECTIVE_PATH: &str = "/tmp";
 
 fn generate_directive_hash(directive_path: PathType) -> Result<String, ErrorArrayItem> {
-    let mut directive_file: std::fs::File = open_file(directive_path, false)?;
+    let mut directive_file: std::fs::File = open_file(directive_path.clone(), false)?;
+
+    let directive_parent = get_parent_dir(&directive_path);
+
+    let service_id: String = directive_parent.to_string().replace("/var/www/ais/", "");
+
     let mut directive_buffer: Vec<u8> = Vec::new();
+
     directive_file
         .read_to_end(&mut directive_buffer)
         .map_err(|err| ErrorArrayItem::from(err))?;
-    let result = String::from_utf8(directive_buffer).map_err(|err| ErrorArrayItem::from(err))?;
 
-    Ok(create_hash(result))
+    let directive_hash: String =
+        String::from_utf8(directive_buffer).map_err(|err| ErrorArrayItem::from(err))?;
+
+    Ok(create_hash(format!("{}_{}", directive_hash, service_id)))
 }
 
 fn store_directive(directive_path: PathType) -> Result<(), ErrorArrayItem> {
@@ -54,6 +63,7 @@ fn store_directive(directive_path: PathType) -> Result<(), ErrorArrayItem> {
 
         let bytes_copied = fs::copy(directive_path, new_directive_path)
             .map_err(|err| ErrorArrayItem::from(err))?;
+
         // just for sanity
         if bytes_copied == 0 {
             return Err(ErrorArrayItem::new(
@@ -73,6 +83,18 @@ fn store_directive(directive_path: PathType) -> Result<(), ErrorArrayItem> {
     }
 }
 
+fn get_parent_dir(directive_path: &PathType) -> PathType {
+    PathType::Path(
+        directive_path
+            .clone()
+            .parent()
+            .or_else(|| Some(Path::new("/tmp"))) // this unwrap call should be safe because we can never end up with None for this item
+            .unwrap()
+            .to_owned()
+            .into_boxed_path(),
+    )
+}
+
 fn check_directive(directive_path: PathType) -> Result<bool, ErrorArrayItem> {
     let new_directive_path = PathType::Content(format!(
         "{}/{}",
@@ -86,8 +108,7 @@ fn check_directive(directive_path: PathType) -> Result<bool, ErrorArrayItem> {
 /// This need the directive in the project folder
 async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayItem> {
     let directive: ais_common::directive::Directive = parse_directive(&directive_path).await?;
-    let directive_parent: PathType = PathType::PathBuf(directive_path.clone().parent().expect("The parent dir of the directive is blank. Dieing to not change perm on root or something dumb").to_owned());
-
+    let directive_parent = get_parent_dir(&directive_path);
     notice(&format!("Executing directive: {}", directive_parent));
 
     // Checking if we need to reconfigure apache
@@ -149,12 +170,11 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
         let service_path: PathType =
             PathType::Content(format!("/etc/systemd/system/{}.service", service_id));
 
-        make_file(service_path.clone_path(), ErrorArray::new_container())
-            .uf_unwrap()
-            .map_err(|mut ea| ea.pop())?;
+        if service_path.exists() {
+            fs::remove_file(service_path.clone())?;
+        }
 
-        let mut service_file: fs::File = open_file(service_path, true)?;
-        // let mut service_file: fs::File = File::open(service_path)?;
+        let mut service_file = File::create(service_path.clone())?;
 
         service_file
             .write(service_file_data.as_bytes())
