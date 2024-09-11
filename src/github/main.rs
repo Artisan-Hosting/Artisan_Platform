@@ -82,29 +82,23 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
             truncate(&create_hash(auth.clone().repo), 8)
         ));
 
-
-        // Set up switching to the target branch explicitly using refs/heads/
         let git_switch = GitAction::Switch {
-            branch: format!("refs/heads/{}", auth.branch.clone()), // Force the branch reference
+            branch: auth.branch.clone(),
             destination: git_project_path.clone(),
         };
 
         let git_set_tracking = GitAction::SetTrack(git_project_path.clone_path());
 
         if git_project_path.exists() {
-            // Log available branches (for debugging)
-            let list_branches = GitAction::Branch(git_project_path.clone_path());
-            notice(&format!{"{:?}", list_branches.execute().await?});
-
             // Set safe directory
             let set_safe = GitAction::SetSafe(git_project_path.clone_path());
             set_safe.execute().await?;
 
-            // Fetch branches to ensure the latest remote branches are available
-            let fetch_branches = GitAction::Fetch {
+            // Fetch latest updates from remote repository before switching
+            let fetch_update = GitAction::Fetch {
                 destination: git_project_path.clone_path(),
             };
-            fetch_branches.execute().await?;
+            fetch_update.execute().await?;
 
             // Pull update
             let pull_update = GitAction::Pull {
@@ -114,24 +108,23 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
 
             match pull_update.execute().await {
                 Ok(_) => {
-                    // Set tracking branch and switch branch if pull succeeds
                     git_set_tracking.execute().await?;
                     git_switch.execute().await?;
                 }
                 Err(e) => {
-                    // If pull fails due to safe directory error, retry setting it as safe
+                    // Handle "safe directory" error
                     if e.to_string().contains("safe directory") {
                         let set_safe = GitAction::SetSafe(git_project_path.clone_path());
                         set_safe.execute().await?;
                         git_set_tracking.execute().await?;
-                        pull_update.execute().await?; // Retry pull
+                        pull_update.execute().await?;
                     } else {
                         return Err(e);
                     }
                 }
             }
         } else {
-            // If the directory doesn't exist, clone the repo
+            // Clone the repo if it doesn't exist
             let git_clone = GitAction::Clone {
                 repo_name: auth.clone().repo,
                 repo_owner: auth.clone().user,
@@ -144,11 +137,17 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
             let webuser = get_id(SystemUsers::Www)?;
             set_file_ownership(&git_project_path, webuser.0, webuser.1)?;
 
-            // Set the directory as safe
+            // Set safe directory
             let set_safe = GitAction::SetSafe(git_project_path.clone_path());
             set_safe.execute().await?;
 
-            // Switch to the correct branch after cloning
+            // **Force switch to the correct branch after cloning**
+            let fetch_update = GitAction::Fetch {
+                destination: git_project_path.clone_path(),
+            };
+            fetch_update.execute().await?; // Fetch the latest from the remote to get branch data
+
+            // Ensure that after cloning, we force the branch switch
             git_switch.execute().await?;
         }
     }
