@@ -1,3 +1,4 @@
+use crate::constants::{WEBSERVER_CONFIG_DIR, WEBSERVER_PORTS_CONFIG};
 use crate::directive::{parse_directive, scan_directories, Directive};
 use crate::systemd::Services;
 use dusa_collection_utils::errors::ErrorArrayItem;
@@ -5,12 +6,9 @@ use std::error::Error;
 use std::fs;
 use std::path::Path;
 
-const APACHE_CONFIG_DIR: &str = "/etc/apache2/sites-available";
-const APACHE_PORTS_CONFIG: &str = "/etc/apache2/ports.conf";
-
 
 fn read_existing_apache_config(directive: &Directive) -> Option<String> {
-    let config_path = Path::new(APACHE_CONFIG_DIR).join(format!("{}.conf", directive.url));
+    let config_path = Path::new(WEBSERVER_CONFIG_DIR).join(format!("{}.conf", directive.url));
     if config_path.exists() {
         if let Ok(content) = fs::read_to_string(config_path) {
             return Some(content);
@@ -59,7 +57,7 @@ pub fn create_apache_config(directive: &Directive, base_path: &Path) -> Result<b
         php_fpm_config,
     );
 
-    let config_path = Path::new(APACHE_CONFIG_DIR).join(format!("{}.conf", directive.url));
+    let config_path = Path::new(WEBSERVER_CONFIG_DIR).join(format!("{}.conf", directive.url));
 
     // Check if existing config matches the new config
     if let Some(existing_config) = read_existing_apache_config(directive) {
@@ -75,7 +73,7 @@ pub fn create_apache_config(directive: &Directive, base_path: &Path) -> Result<b
 }
 
 async fn check_apache_ports(directive: &Directive) -> Result<(), Box<dyn Error>> {
-    let content = fs::read_to_string(APACHE_PORTS_CONFIG)?;
+    let content = fs::read_to_string(WEBSERVER_PORTS_CONFIG)?;
     if !content.contains(&directive.port.to_string()) {
         println!(
             "Port {} not found in Apache2 ports configuration, assuming port 80",

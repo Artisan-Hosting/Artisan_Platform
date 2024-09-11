@@ -77,6 +77,9 @@ reqwest = { version = "0.11", features = ["json", "native-tls"] }
 # Terminal UI
 crossterm = "0.24"
 
+pnet = "0.30.0"
+base64 = "0.13.0"
+
 # My system library 
 
 [dependencies.uuid]
@@ -146,6 +149,10 @@ path = "src/manager/tui/main.rs"
 [[bin]]
 name = "ais_directive"
 path = "src/directive/main.rs"
+
+[[bin]]
+name = "ais_stress"
+path = "src/stress/main.rs"
 
 [[bin]]
 name = "mail_test"

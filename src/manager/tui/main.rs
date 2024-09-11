@@ -10,9 +10,7 @@ use std::{
 mod ui;
 
 use ais_common::{
-    common::{AppName, Status, AppStatus},
-    git_data::{GitAuth, GitCredentials},
-    manager::{NetworkRequest, NetworkRequestType, NetworkResponse, SERVERPORT},
+    common::{AppName, AppStatus, Status}, constants::SERVERPORT, git_data::{GitAuth, GitCredentials}, manager::{NetworkRequest, NetworkRequestType, NetworkResponse}
 };
 use crossterm::event::{self, Event, KeyCode};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};

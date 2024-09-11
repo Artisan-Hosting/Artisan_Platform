@@ -1,7 +1,6 @@
 use dusa_collection_utils::{errors::{ErrorArray, ErrorArrayItem, Errors}, functions::path_present, types::PathType};
 use tokio::process::Command;
 
-
 /// Function to check if Git is installed.
 async fn check_git_installed() -> Result<(), ErrorArrayItem> {
     let output: std::process::Output = match Command::new("git").arg("--version").output().await {

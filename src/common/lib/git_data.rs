@@ -1,4 +1,4 @@
-use crate::dusa_wrapper::{decrypt_text, encrypt_text};
+use crate::{constants::ARTISANCF, dusa_wrapper::{decrypt_text, encrypt_text}};
 use dusa_collection_utils::errors::ErrorArrayItem;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -18,8 +18,6 @@ pub struct GitAuth {
     pub branch: String,
     pub token: String,
 }
-
-pub const ARTISANCF: &str = "/etc/artisan.cf";
 
 // TODO ensure we are creating an Array of GitAuth items to parse in loops
 impl GitCredentials {

@@ -3,7 +3,8 @@ use ais_common::common::{
     AppName, GeneralMessage, MessageType,
     QueryMessage, QueryResponse, QueryType, Status,
 };
-use ais_common::git_data::{GitAuth, GitCredentials, ARTISANCF};
+use ais_common::constants::ARTISANCF;
+use ais_common::git_data::{GitAuth, GitCredentials};
 use ais_common::mailing::{Email, EmailSecure};
 use ais_common::messages::{receive_message, send_message};
 use ais_common::socket::get_socket_path;
