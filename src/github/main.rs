@@ -112,16 +112,23 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
 
             match pull_update.execute().await {
                 Ok(_) => {
-                    restart_if_exists(
+                    git_set_tracking.execute().await?;
+                    git_switch.execute().await?;
+                    let d = restart_if_exists(
                         truncate(
                             &create_hash(format!("{}-{}-{}", ac.branch, ac.repo, ac.user)),
                             8,
                         )
                         .to_owned(),
                     )?;
-                    git_set_tracking.execute().await?;
-                    git_switch.execute().await?;
-                    // Restart the service if needed
+                    notice(&format!(
+                        "update pulled: {} restarted? : {}.",
+                        truncate(
+                            &create_hash(format!("{}-{}-{}", ac.branch, ac.repo, ac.user)),
+                            8,
+                        ),
+                        d
+                    ))
                 }
                 Err(e) => {
                     // Handle "safe directory" error
