@@ -5,12 +5,12 @@ use ais_common::messages::report_status;
 use ais_common::setcap::{get_id, set_file_ownership, SystemUsers};
 use ais_common::systemd::restart_if_exists;
 use ais_common::version::Version;
-use dusa_collection_utils::errors::{ErrorArray, ErrorArrayItem};
+use dusa_collection_utils::errors::{ErrorArray, ErrorArrayItem, Errors};
 use dusa_collection_utils::functions::{create_hash, truncate};
 use dusa_collection_utils::types::{ClonePath, PathType};
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng};
-use simple_pretty::notice;
+use simple_pretty::{notice, warn};
 use tokio::time::{self, Duration};
 
 #[tokio::main]
@@ -131,15 +131,37 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
                     ))
                 }
                 Err(e) => {
-                    // Handle "safe directory" error
-                    if e.to_string().contains("safe directory") {
-                        let set_safe = GitAction::SetSafe(git_project_path.clone_path());
-                        set_safe.execute().await?;
+                    if e.err_type == Errors::GeneralError {
+                        warn("non critical errors occurred");
                         git_set_tracking.execute().await?;
-                        pull_update.execute().await?;
+                        git_switch.execute().await?;
+                        let d = restart_if_exists(
+                            truncate(
+                                &create_hash(format!("{}-{}-{}", ac.branch, ac.repo, ac.user)),
+                                8,
+                            )
+                            .to_owned(),
+                        )?;
+                        notice(&format!(
+                            "update pulled: {} restarted? : {}.",
+                            truncate(
+                                &create_hash(format!("{}-{}-{}", ac.branch, ac.repo, ac.user)),
+                                8,
+                            ),
+                            d
+                        ))
                     } else {
-                        return Err(e);
+                        return Err(e)
                     }
+                    // // Handle "safe directory" error
+                    // if e.to_string().contains("safe directory") {
+                    //     let set_safe = GitAction::SetSafe(git_project_path.clone_path());
+                    //     set_safe.execute().await?;
+                    //     git_set_tracking.execute().await?;
+                    //     pull_update.execute().await?;
+                    // } else {
+                    //     return Err(e);
+                    // }
                 }
             }
         } else {
