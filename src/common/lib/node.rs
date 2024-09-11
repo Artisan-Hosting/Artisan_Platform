@@ -1,9 +1,16 @@
-use std::{io, process::{Command, ExitStatus}};
+use std::{
+    io,
+    process::{Command, ExitStatus},
+};
 
 use dusa_collection_utils::{errors::ErrorArrayItem, types::PathType};
 
 /// Function to create a systemd service file dynamically
-pub fn create_node_systemd_service(exec_start: &str, working_dir: &PathType, description: &str) -> Result<String, ErrorArrayItem> {
+pub fn create_node_systemd_service(
+    exec_start: &str,
+    working_dir: &PathType,
+    description: &str,
+) -> Result<String, ErrorArrayItem> {
     // Setting environmental variables depending on the directive file
     let service_file_content = format!(
         r#"[Unit]

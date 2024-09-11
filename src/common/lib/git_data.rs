@@ -1,4 +1,7 @@
-use crate::{constants::ARTISANCF, dusa_wrapper::{decrypt_text, encrypt_text}};
+use crate::{
+    constants::ARTISANCF,
+    dusa_wrapper::{decrypt_text, encrypt_text},
+};
 use dusa_collection_utils::errors::ErrorArrayItem;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -24,8 +27,7 @@ impl GitCredentials {
     pub fn new() -> Result<Self, ErrorArrayItem> {
         let encrypted_credentials = Self::read_file(ARTISANCF)?;
 
-        let decrypted_string = decrypt_text(encrypted_credentials)?
-            .replace("\n", "");
+        let decrypted_string = decrypt_text(encrypted_credentials)?.replace("\n", "");
 
         let data: GitCredentials = serde_json::from_str(&decrypted_string)?;
 
@@ -71,7 +73,9 @@ impl GitCredentials {
         match GitCredentials::new() {
             Ok(creds) => Ok(creds),
             Err(_) => {
-                let default_creds = GitCredentials { auth_items: Vec::new() };
+                let default_creds = GitCredentials {
+                    auth_items: Vec::new(),
+                };
                 default_creds.save("/etc/artisan.cf")?;
                 Ok(default_creds)
             }

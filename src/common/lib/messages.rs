@@ -1,4 +1,7 @@
-use dusa_collection_utils::{errors::{ErrorArray, ErrorArrayItem, WarningArray}, types::PathType};
+use dusa_collection_utils::{
+    errors::{ErrorArray, ErrorArrayItem, WarningArray},
+    types::PathType,
+};
 use serde::Serialize;
 use serde_json::json;
 use tokio::{
@@ -6,7 +9,11 @@ use tokio::{
     net::UnixStream,
 };
 
-use crate::{common::{GeneralMessage, MessageType, Status}, socket::get_socket_path, version::Version};
+use crate::{
+    common::{GeneralMessage, MessageType, Status},
+    socket::get_socket_path,
+    version::Version,
+};
 
 /// Encodes a message with a length prefix and sends it over the stream.
 pub async fn send_message<T: Serialize>(
@@ -35,7 +42,7 @@ pub async fn send_message<T: Serialize>(
 /// Reads a length-prefixed message from the stream and decodes it.
 pub async fn receive_message(stream: &mut UnixStream) -> Result<GeneralMessage, ErrorArrayItem> {
     let mut length_bytes: [u8; 4] = [0u8; 4];
-    
+
     stream
         .read_exact(&mut length_bytes)
         .await

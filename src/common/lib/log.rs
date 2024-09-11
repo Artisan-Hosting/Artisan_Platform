@@ -1,5 +1,5 @@
-use simple_tmp_logger::append_log;
 use dusa_collection_utils::errors::ErrorArray;
+use simple_tmp_logger::append_log;
 
 #[derive(Debug)]
 pub enum Names {
@@ -23,4 +23,3 @@ pub fn log(data: String, name: Names) {
     drop(data);
     drop(app_name);
 }
-

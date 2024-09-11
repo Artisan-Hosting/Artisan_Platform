@@ -1,8 +1,14 @@
 use std::{fs, os::unix::fs::PermissionsExt, path::PathBuf};
 
+use dusa_collection_utils::{
+    errors::{
+        ErrorArray, ErrorArrayItem, Errors as SE, OkWarning, UnifiedResult as uf, WarningArray,
+        WarningArrayItem, Warnings,
+    },
+    functions::del_file,
+    types::PathType,
+};
 use nix::unistd::{chown, Gid, Uid};
-use dusa_collection_utils::{errors::{ErrorArray, ErrorArrayItem, Errors as SE, OkWarning, UnifiedResult as uf, WarningArray, WarningArrayItem, Warnings}, functions::del_file, types::PathType};
-
 
 /// Returns the path to the socket.
 ///
@@ -13,7 +19,7 @@ use dusa_collection_utils::{errors::{ErrorArray, ErrorArrayItem, Errors as SE, O
 ///
 /// # Returns
 /// A unified result containing the path type or errors/warnings.
-pub fn get_socket_path (
+pub fn get_socket_path(
     int: bool,
     mut errors: ErrorArray,
     mut warnings: WarningArray,
@@ -56,26 +62,24 @@ pub fn get_socket_path (
 
 pub fn set_socket_ownership(path: &PathBuf, uid: Uid, gid: Gid) -> Result<(), ErrorArrayItem> {
     if let Err(err) = chown(path, Some(uid), Some(gid)) {
-        return Err(ErrorArrayItem::from(err))
+        return Err(ErrorArrayItem::from(err));
     };
 
     Ok(())
 }
 
-pub fn set_socket_permission(socket_path: PathType) -> Result<(), ErrorArrayItem>{
+pub fn set_socket_permission(socket_path: PathType) -> Result<(), ErrorArrayItem> {
     // Changing the permissions the socket
     let socket_metadata = match fs::metadata(socket_path.clone()) {
         Ok(d) => d,
-        Err(e) => {
-            return Err(ErrorArrayItem::from(e))
-        }
+        Err(e) => return Err(ErrorArrayItem::from(e)),
     };
 
     let mut permissions = socket_metadata.permissions();
     permissions.set_mode(0o660); // Set desired permissions
 
     if let Err(err) = fs::set_permissions(socket_path.clone(), permissions) {
-        return Err(ErrorArrayItem::from(err))
+        return Err(ErrorArrayItem::from(err));
     }
 
     Ok(())

@@ -3,13 +3,19 @@
 use {
     dusa_collection_utils::{
         errors::{
-            ErrorArray, ErrorArrayItem, OkWarning, UnifiedResult as uf, WarningArray, WarningArrayItem, Warnings
-        }, types::PathType
-    }, dusa_common::{
-        get_id, prefix::{receive_message, send_message}, set_file_ownership, DecryptResponseData, Message, MessageType, RequestPayload, RequestRecsPlainText, RequestRecsSimple, RequestRecsWrite, SOCKET_PATH, VERSION
-    }, nix::unistd::geteuid, std::{
-        fs, os::unix::net::UnixStream, path::PathBuf, time::Duration
-    }
+            ErrorArray, ErrorArrayItem, OkWarning, UnifiedResult as uf, WarningArray,
+            WarningArrayItem, Warnings,
+        },
+        types::PathType,
+    },
+    dusa_common::{
+        get_id,
+        prefix::{receive_message, send_message},
+        set_file_ownership, DecryptResponseData, Message, MessageType, RequestPayload,
+        RequestRecsPlainText, RequestRecsSimple, RequestRecsWrite, SOCKET_PATH, VERSION,
+    },
+    nix::unistd::geteuid,
+    std::{fs, os::unix::net::UnixStream, path::PathBuf, time::Duration},
 };
 
 pub enum ProgramMode {
@@ -46,7 +52,7 @@ pub fn run(
         Ok(d) => d,
         Err(e) => {
             e1.push(ErrorArrayItem::from(e));
-            return uf::new(Err(e1))
+            return uf::new(Err(e1));
         }
     };
 
@@ -61,7 +67,7 @@ pub fn run(
     match result.uf_unwrap() {
         Ok(d) => {
             d.warning.display();
-            return uf::new(Ok(d.data))
+            return uf::new(Ok(d.data));
         }
         Err(e) => return uf::new(Err(e)),
     }
@@ -74,20 +80,24 @@ fn encrypt_file(
     errors: ErrorArray,
 ) -> uf<OkWarning<Option<String>>> {
     let file_path: PathType = match path {
-        Some(p) => match get_file_path(errors.clone(), warnings.clone(), &PathBuf::from(p)).uf_unwrap() {
-            Ok(d) => {
-                d.warning.display();
-                d.data
+        Some(p) => {
+            match get_file_path(errors.clone(), warnings.clone(), &PathBuf::from(p)).uf_unwrap() {
+                Ok(d) => {
+                    d.warning.display();
+                    d.data
+                }
+                Err(e) => return uf::new(Err(e)),
             }
-            Err(e) => return uf::new(Err(e)),
-        },
+        }
         None => return uf::new(Err(errors)),
     };
 
     // Changing ownership of the file
     let (uid, gid) = get_id();
-    if let Err(err) = set_file_ownership(&file_path.to_path_buf(), uid, gid, errors.clone()).uf_unwrap() {
-        return uf::new(Err(err))
+    if let Err(err) =
+        set_file_ownership(&file_path.to_path_buf(), uid, gid, errors.clone()).uf_unwrap()
+    {
+        return uf::new(Err(err));
     }
 
     // Creating the command to send
@@ -107,7 +117,7 @@ fn encrypt_file(
 
     // Communicating with server
     if let Err(err) = send_message(&mut stream, &msg, errors.clone()).uf_unwrap() {
-        return uf::new(Err(err))
+        return uf::new(Err(err));
     }
     std::thread::sleep(Duration::from_nanos(100));
     let response = receive_message(&mut stream, errors.clone()).unwrap();
@@ -124,15 +134,10 @@ fn encrypt_file(
                 warning: warnings,
             }));
         }
-        MessageType::ErrorResponse => {
-            return uf::new(Err(errors))
-        }
+        MessageType::ErrorResponse => return uf::new(Err(errors)),
         _ => {
             let msg = String::from("Server responded in an unexpected way, ignoring ...");
-            warnings.push(WarningArrayItem::new_details(
-                Warnings::Warning,
-                msg,
-            ))
+            warnings.push(WarningArrayItem::new_details(Warnings::Warning, msg))
         }
     }
 
@@ -179,13 +184,13 @@ fn decrypt_file(
                     .and_then(|v| v.get("Content"))
                     .and_then(|v| v.as_str())
                     .map(|s| PathType::Content(s.to_string()))
-                    .unwrap_or_else(|| PathType::Content("/tmp/null".to_string())),                
+                    .unwrap_or_else(|| PathType::Content("/tmp/null".to_string())),
                 orig_p: response_data
                     .get("orig_p")
                     .and_then(|v| v.get("PathBuf"))
                     .and_then(|v| v.as_str())
                     .map(|s| PathType::Content(s.to_string()))
-                    .unwrap_or_else(|| PathType::Content("/tmp/null".to_string())),  
+                    .unwrap_or_else(|| PathType::Content("/tmp/null".to_string())),
                 ttl: response_data
                     .get("ttl")
                     .and_then(|v| v.get("secs"))
@@ -206,17 +211,19 @@ fn decrypt_file(
 
             // copy the file to the original path
             match fs::copy(data.temp_p, data.orig_p) {
-                Ok(d) => if d != 0 {
-                    // log(format!("{:#?}", data));
-                    return uf::new(Ok(OkWarning {
-                        data: Some("done".to_string()),
-                        warning: warnings,
-                    }));
-                },
+                Ok(d) => {
+                    if d != 0 {
+                        // log(format!("{:#?}", data));
+                        return uf::new(Ok(OkWarning {
+                            data: Some("done".to_string()),
+                            warning: warnings,
+                        }));
+                    }
+                }
                 Err(e) => {
                     errors.push(ErrorArrayItem::from(e));
                     errors.display(true);
-                },
+                }
             }
         }
         MessageType::ErrorResponse => {
@@ -224,10 +231,7 @@ fn decrypt_file(
         }
         _ => {
             let msg = String::from("Server responded in an unexpected way, ignoring ...");
-            warnings.push(WarningArrayItem::new_details(
-                Warnings::Warning,
-                msg,
-            ))
+            warnings.push(WarningArrayItem::new_details(Warnings::Warning, msg))
         }
     }
 
@@ -290,10 +294,7 @@ fn encrypt_text(
         }
         _ => {
             let msg = String::from("Server responded in an unexpected way, ignoring ...");
-            warnings.push(WarningArrayItem::new_details(
-                Warnings::Warning,
-                msg,
-            ))
+            warnings.push(WarningArrayItem::new_details(Warnings::Warning, msg))
         }
     };
 
@@ -356,10 +357,7 @@ fn decrypt_text(
         }
         _ => {
             let msg = String::from("Server responded in an unexpected way, ignoring ...");
-            warnings.push(WarningArrayItem::new_details(
-                Warnings::Warning,
-                msg,
-            ))
+            warnings.push(WarningArrayItem::new_details(Warnings::Warning, msg))
         }
     };
 
@@ -422,10 +420,7 @@ fn remove_file(
         }
         _ => {
             let msg = String::from("Server responded in an unexpected way, ignoring ...");
-            warnings.push(WarningArrayItem::new_details(
-                Warnings::Warning,
-                msg,
-            ))
+            warnings.push(WarningArrayItem::new_details(Warnings::Warning, msg))
         }
     };
 

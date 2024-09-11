@@ -1,6 +1,9 @@
 use chrono::{DateTime, Utc};
 use dusa_collection_utils::errors::ErrorArrayItem;
-use std::{fmt, io, process::{Command, ExitStatus}};
+use std::{
+    fmt, io,
+    process::{Command, ExitStatus},
+};
 use systemctl::Unit;
 
 /// Enum representing different services.
@@ -148,21 +151,19 @@ impl ProcessInfo {
 }
 
 pub fn reload_systemd_daemon() -> io::Result<ExitStatus> {
-    let status = Command::new("systemctl")
-        .arg("daemon-reload") 
-        .status()?; 
+    let status = Command::new("systemctl").arg("daemon-reload").status()?;
 
     Ok(status)
 }
 
 pub fn enable_now(service_name: String) -> io::Result<ExitStatus> {
     let status = Command::new("systemctl")
-    .arg("enable") 
-    .arg(&service_name) 
-    .arg("--now") 
-    .status()?; 
+        .arg("enable")
+        .arg(&service_name)
+        .arg("--now")
+        .status()?;
 
-    Ok(status) 
+    Ok(status)
 }
 
 // Displays

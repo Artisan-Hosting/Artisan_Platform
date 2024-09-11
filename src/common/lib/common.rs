@@ -1,8 +1,9 @@
-use std::{collections::HashMap, time::{Duration, SystemTime, UNIX_EPOCH}};
+use std::{
+    collections::HashMap,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 use serde::{Deserialize, Serialize};
-
-
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum QueryType {
@@ -50,7 +51,8 @@ pub enum AppStatus {
 
 /// Enum representing the name of an application.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, PartialOrd, Ord, Eq, Hash)]
-pub enum AppName { // These are artisan_platform components 
+pub enum AppName {
+    // These are artisan_platform components
     Github,
     Directive,
     Apache,
@@ -58,7 +60,6 @@ pub enum AppName { // These are artisan_platform components
     // Firewall,
     Security,
 }
-
 
 /// Struct representing the status of an application at a specific time.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -68,7 +69,6 @@ pub struct Status {
     pub timestamp: u64,
     pub version: String, // Add version field
 }
-
 
 /// Retrieves the current Unix timestamp in seconds.
 pub fn current_timestamp() -> u64 {
@@ -85,13 +85,23 @@ pub fn format_unix_timestamp(timestamp: u64) -> String {
     let duration = Duration::from_secs(timestamp);
     let datetime = UNIX_EPOCH + duration;
     let now = SystemTime::now();
-    
+
     if let Ok(elapsed) = now.duration_since(datetime) {
         let seconds = elapsed.as_secs();
-        format!("{:02}:{:02}:{:02}", seconds / 3600, (seconds % 3600) / 60, seconds % 60)
+        format!(
+            "{:02}:{:02}:{:02}",
+            seconds / 3600,
+            (seconds % 3600) / 60,
+            seconds % 60
+        )
     } else if let Ok(elapsed) = datetime.duration_since(now) {
         let seconds = elapsed.as_secs();
-        format!("-{:02}:{:02}:{:02}", seconds / 3600, (seconds % 3600) / 60, seconds % 60)
+        format!(
+            "-{:02}:{:02}:{:02}",
+            seconds / 3600,
+            (seconds % 3600) / 60,
+            seconds % 60
+        )
     } else {
         "Error in computing time".to_string()
     }

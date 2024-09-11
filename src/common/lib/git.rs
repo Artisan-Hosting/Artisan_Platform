@@ -1,4 +1,8 @@
-use dusa_collection_utils::{errors::{ErrorArray, ErrorArrayItem, Errors}, functions::path_present, types::PathType};
+use dusa_collection_utils::{
+    errors::{ErrorArray, ErrorArrayItem, Errors},
+    functions::path_present,
+    types::PathType,
+};
 use tokio::process::Command;
 
 /// Function to check if Git is installed.
@@ -7,14 +11,16 @@ async fn check_git_installed() -> Result<(), ErrorArrayItem> {
         Ok(output) => output,
         Err(io_err) => {
             return Err(ErrorArrayItem::from(io_err));
-
         }
     };
 
     if output.status.success() {
         Ok(())
     } else {
-        return Err(ErrorArrayItem::new(Errors::GeneralError, String::from("Git not installed or not found"))) 
+        return Err(ErrorArrayItem::new(
+            Errors::GeneralError,
+            String::from("Git not installed or not found"),
+        ));
     }
 }
 
@@ -55,7 +61,7 @@ impl GitAction {
     pub async fn execute(&self) -> Result<bool, ErrorArrayItem> {
         let err_to_drop = ErrorArray::new_container();
         if let Err(errs) = check_git_installed().await {
-            return Err(errs)
+            return Err(errs);
         };
 
         match self {
@@ -64,10 +70,11 @@ impl GitAction {
                 repo_name,
                 repo_owner,
             } => {
-
                 let val = path_present(destination, err_to_drop.clone());
                 let url = format!("https://github.com/{}/{}.git", repo_owner, repo_name);
-                let val2 = execute_git_command(&["clone --mirror", &url, destination.to_str().unwrap()]).await;
+                let val2 =
+                    execute_git_command(&["clone --mirror", &url, destination.to_str().unwrap()])
+                        .await;
 
                 if val.is_ok() {
                     match val2 {
@@ -75,9 +82,11 @@ impl GitAction {
                         Err(e) => return Err(e),
                     }
                 } else {
-                    return Err(ErrorArrayItem::new(Errors::InvalidFile, String::from("Repo path not found")))
+                    return Err(ErrorArrayItem::new(
+                        Errors::InvalidFile,
+                        String::from("Repo path not found"),
+                    ));
                 }
-                
             }
             GitAction::Pull {
                 target_branch,
@@ -86,26 +95,27 @@ impl GitAction {
                 let path = path_present(destination, err_to_drop.clone());
                 if path.is_ok() {
                     let _data = path.get_ok().unwrap();
-                    let _ = execute_git_command(&["-C", destination.to_str().unwrap(), "pull"]).await?;
-                    let _ = execute_git_command(&["-C", destination.to_str().unwrap(), "switch", target_branch]).await?;
-                    return Ok(true)
+                    let _ =
+                        execute_git_command(&["-C", destination.to_str().unwrap(), "pull"]).await?;
+                    let _ = execute_git_command(&[
+                        "-C",
+                        destination.to_str().unwrap(),
+                        "switch",
+                        target_branch,
+                    ])
+                    .await?;
+                    return Ok(true);
                 } else {
-                    return Err(path
-                            .get_err()
-                            .unwrap()
-                            .pop());
+                    return Err(path.get_err().unwrap().pop());
                 }
             }
             GitAction::Push { directory } => {
                 let path = path_present(directory, err_to_drop.clone());
                 if path.is_ok() {
                     execute_git_command(&["-C", directory.to_str().unwrap(), "push"]).await?;
-                    return Ok(true)
+                    return Ok(true);
                 } else {
-                    return Err(path
-                        .get_err()
-                        .unwrap()
-                        .pop());
+                    return Err(path.get_err().unwrap().pop());
                 }
             }
             GitAction::Stage { directory, files } => {
@@ -114,44 +124,51 @@ impl GitAction {
                     let mut args = vec!["-C", directory.to_str().unwrap(), "stage --all"];
                     args.extend(files.iter().map(|s| s.as_str()));
                     execute_git_command(&args).await?;
-                    return Ok(true)
+                    return Ok(true);
                 } else {
-                    return Err(path
-                        .get_err()
-                        .unwrap()
-                        .pop());
+                    return Err(path.get_err().unwrap().pop());
                 }
             }
             GitAction::Commit { directory, message } => {
                 let path = path_present(directory, err_to_drop.clone());
                 if path.is_ok() {
-                    execute_git_command(&["-C", directory.to_str().unwrap(), "commit", "-m", message]).await?;
-                    return Ok(true)
+                    execute_git_command(&[
+                        "-C",
+                        directory.to_str().unwrap(),
+                        "commit",
+                        "-m",
+                        message,
+                    ])
+                    .await?;
+                    return Ok(true);
                 } else {
-                    return Err(path
-                        .get_err()
-                        .unwrap()
-                        .pop());
+                    return Err(path.get_err().unwrap().pop());
                 }
             }
-            GitAction::CheckRemoteAhead(directory) => {
-                match directory.exists() {
-                    true => check_remote_ahead(directory).await,
-                    false => return Ok(false),
-                }
-            }
+            GitAction::CheckRemoteAhead(directory) => match directory.exists() {
+                true => check_remote_ahead(directory).await,
+                false => return Ok(false),
+            },
             GitAction::Switch {
                 branch,
                 destination,
-            } => execute_git_command(&["-C", destination.to_str().unwrap(), "switch", branch]).await.map(|_ok| {
-                true
-            }),
-            // ! This is patched out at the system level. git config --global --add safe.directory '*' 
+            } => execute_git_command(&["-C", destination.to_str().unwrap(), "switch", branch])
+                .await
+                .map(|_ok| true),
+            // ! This is patched out at the system level. git config --global --add safe.directory '*'
             // ! READ THIS: https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
             GitAction::SetSafe(directory) => {
                 // Split the command correctly into separate arguments
-                execute_git_command(&["config", "--global", "--add", "safe.directory", directory.to_str().unwrap()]).await.map(|_ok| true)
-            },
+                execute_git_command(&[
+                    "config",
+                    "--global",
+                    "--add",
+                    "safe.directory",
+                    directory.to_str().unwrap(),
+                ])
+                .await
+                .map(|_ok| true)
+            }
         }
     }
 }
@@ -168,7 +185,10 @@ async fn execute_git_command(args: &[&str]) -> Result<(), ErrorArrayItem> {
     if output.status.success() {
         Ok(())
     } else {
-        return Err(ErrorArrayItem::new(Errors::GeneralError, String::from_utf8(output.stderr).unwrap()));
+        return Err(ErrorArrayItem::new(
+            Errors::GeneralError,
+            String::from_utf8(output.stderr).unwrap(),
+        ));
     }
 }
 
@@ -188,15 +208,16 @@ async fn check_remote_ahead(directory: &PathType) -> Result<bool, ErrorArrayItem
 async fn execute_git_hash_command(args: &[&str]) -> Result<String, ErrorArrayItem> {
     let output: std::process::Output = match Command::new("git").args(args).output().await {
         Ok(output) => output,
-        Err(io_err) => {
-            return Err(ErrorArrayItem::from(io_err))
-        }
+        Err(io_err) => return Err(ErrorArrayItem::from(io_err)),
     };
 
     if output.status.success() {
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
     } else {
-        Err(ErrorArrayItem::new(Errors::Git, String::from_utf8_lossy(&output.stderr).to_string()))
+        Err(ErrorArrayItem::new(
+            Errors::Git,
+            String::from_utf8_lossy(&output.stderr).to_string(),
+        ))
     }
 }
 

@@ -1,10 +1,10 @@
-use std::io::BufRead;
-use std::io;
-use std::path::{Path, PathBuf};
 use dusa_collection_utils::errors::ErrorArrayItem;
 use dusa_collection_utils::functions::open_file;
 use dusa_collection_utils::types::PathType;
 use serde::{Deserialize, Serialize};
+use std::io;
+use std::io::BufRead;
+use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 // The directive functions will parse dependencies or programs that need to be ran when new data is pulled down.
@@ -16,7 +16,7 @@ pub struct Directive {
     pub php_fpm_version: Option<String>, // Add this field to specify PHP-FPM version
     pub nodejs_bool: bool,
     pub nodejs_version: Option<String>,
-    // pub nodejs_exec_command: Option<String>, // This field will change what is written to the service file 
+    // pub nodejs_exec_command: Option<String>, // This field will change what is written to the service file
     pub directive_executed: bool, // This should never be changed
 }
 
@@ -33,8 +33,10 @@ pub async fn scan_directories(base_path: &str) -> Result<Vec<PathBuf>, ErrorArra
 }
 
 pub async fn parse_directive(path: &Path) -> Result<Directive, ErrorArrayItem> {
-    let content = read_json_without_comments(PathType::Path(path.into())).map_err(|err| ErrorArrayItem::from(err))?;
-    let directive: Directive = serde_json::from_str(&content).map_err(|err| ErrorArrayItem::from(err))?;
+    let content = read_json_without_comments(PathType::Path(path.into()))
+        .map_err(|err| ErrorArrayItem::from(err))?;
+    let directive: Directive =
+        serde_json::from_str(&content).map_err(|err| ErrorArrayItem::from(err))?;
     Ok(directive)
 }
 

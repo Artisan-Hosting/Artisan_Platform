@@ -1,5 +1,4 @@
-
-// Github credential file 
+// Github credential file
 pub const ARTISANCF: &str = "/etc/artisan.cf";
 
 // Server address for the ais manager server and tui

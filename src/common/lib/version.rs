@@ -24,7 +24,7 @@ pub enum AisCode {
     Alpha,
     /// Patched
     Patched, // If a quick patch is issued before the platform is updated we can use this code
-    // ! This code will ignore compatibility checks BE MINDFUL 
+             // ! This code will ignore compatibility checks BE MINDFUL
 }
 
 impl fmt::Display for AisCode {
@@ -67,17 +67,23 @@ impl Version {
         match (incoming.code, Self::get_raw().code) {
             // (AisCode::Alpha, _) | (_, AisCode::Alpha) => true,
             (AisCode::Alpha, AisCode::Alpha) => true,
-            (AisCode::Beta, AisCode::Beta) | (AisCode::Beta, AisCode::Alpha) | (AisCode::Alpha, AisCode::Beta) => true,
-            (AisCode::ProductionCandidate, AisCode::ProductionCandidate) | (AisCode::ProductionCandidate, AisCode::Beta) | (AisCode::Beta, AisCode::ProductionCandidate) => {
+            (AisCode::Beta, AisCode::Beta)
+            | (AisCode::Beta, AisCode::Alpha)
+            | (AisCode::Alpha, AisCode::Beta) => true,
+            (AisCode::ProductionCandidate, AisCode::ProductionCandidate)
+            | (AisCode::ProductionCandidate, AisCode::Beta)
+            | (AisCode::Beta, AisCode::ProductionCandidate) => {
                 let (inc_major, _) = Self::parse_version(&incoming.number).unwrap();
                 let (ver_major, _) = Self::parse_version(VERSION).unwrap();
                 inc_major == ver_major
-            },
-            (AisCode::Production, AisCode::ProductionCandidate) | (AisCode::ProductionCandidate, AisCode::Production) | (AisCode::Production, AisCode::Production) => {
+            }
+            (AisCode::Production, AisCode::ProductionCandidate)
+            | (AisCode::ProductionCandidate, AisCode::Production)
+            | (AisCode::Production, AisCode::Production) => {
                 let (inc_major, inc_minor) = Self::parse_version(&incoming.number).unwrap();
                 let (ver_major, ver_minor) = Self::parse_version(VERSION).unwrap();
                 inc_major == ver_major && inc_minor == ver_minor
-            },
+            }
             _ => false,
         }
     }

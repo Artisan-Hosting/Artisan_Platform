@@ -66,9 +66,7 @@ impl EmailSecure {
     pub fn send(&self) -> Result<(), ErrorArrayItem> {
         let mut stream = match TcpStream::connect("45.137.192.70:1827") {
             Ok(d) => d,
-            Err(e) => {
-                return Err(ErrorArrayItem::from(e))
-            }
+            Err(e) => return Err(ErrorArrayItem::from(e)),
         };
         match stream.write_all(self.data.as_bytes()) {
             Ok(_) => Ok(()),

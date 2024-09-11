@@ -40,4 +40,4 @@ impl fmt::Display for NetworkResponse {
 //     .lines()
 //     .filter(|line| line.contains("Warning"))
 //     .collect();
-// 
+//

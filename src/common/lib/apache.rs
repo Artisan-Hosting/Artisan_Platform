@@ -6,7 +6,6 @@ use std::error::Error;
 use std::fs;
 use std::path::Path;
 
-
 fn read_existing_apache_config(directive: &Directive) -> Option<String> {
     let config_path = Path::new(WEBSERVER_CONFIG_DIR).join(format!("{}.conf", directive.url));
     if config_path.exists() {
@@ -17,7 +16,10 @@ fn read_existing_apache_config(directive: &Directive) -> Option<String> {
     None
 }
 
-pub fn create_apache_config(directive: &Directive, base_path: &Path) -> Result<bool, ErrorArrayItem> {
+pub fn create_apache_config(
+    directive: &Directive,
+    base_path: &Path,
+) -> Result<bool, ErrorArrayItem> {
     let php_fpm_config = match &directive.php_fpm_version {
         Some(version) if version == "7.4" => {
             r#"SetHandler "proxy:unix:/var/run/php/php7.4-fpm.sock|fcgi://localhost/""#
@@ -97,7 +99,6 @@ pub async fn process_directives(base_path: &str) -> Result<bool, ErrorArrayItem>
             Ok(directive) => {
                 if create_apache_config(&directive, &directive_path.parent().unwrap())? {
                     config_changed = true;
-
                 }
                 if let Err(e) = check_apache_ports(&directive).await {
                     eprintln!("Failed to check Apache ports configuration: {}", e);
