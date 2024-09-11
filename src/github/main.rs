@@ -89,9 +89,6 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
             destination: git_project_path.clone(),
         };
 
-        // execute switch
-        git_switch.execute().await?;
-
         if git_project_path.exists() {
             // Set safe directory
             let set_safe = GitAction::SetSafe(git_project_path.clone_path());
@@ -116,6 +113,8 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
                     }
                 }
             }
+
+            git_switch.execute().await?;
         } else {
             let git_clone = GitAction::Clone {
                 repo_name: auth.clone().repo,
