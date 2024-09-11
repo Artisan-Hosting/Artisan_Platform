@@ -4,8 +4,8 @@ use ais_common::socket::get_socket_path;
 use ais_common::version::Version;
 use dusa_collection_utils::errors::{ErrorArray, ErrorArrayItem, WarningArray};
 use std::time::Duration;
-use tokio::time::sleep;
 use tokio::net::UnixStream;
+use tokio::time::sleep;
 
 #[tokio::main]
 async fn main() {
@@ -22,13 +22,16 @@ async fn main() {
 async fn send_status_update() -> Result<(), ErrorArrayItem> {
     let throw_away_array_warning = WarningArray::new_container();
     let throw_away_array_error = ErrorArray::new_container();
-    let socket_path_result = get_socket_path(false, throw_away_array_error, throw_away_array_warning).uf_unwrap();
+    let socket_path_result =
+        get_socket_path(false, throw_away_array_error, throw_away_array_warning).uf_unwrap();
     let socket_path = match socket_path_result {
         Ok(d) => d.strip(),
         Err(mut e) => return Err(e.pop()),
     };
 
-    let mut stream: UnixStream = UnixStream::connect(socket_path).await.map_err(|e| ErrorArrayItem::from(e))?;
+    let mut stream: UnixStream = UnixStream::connect(socket_path)
+        .await
+        .map_err(|e| ErrorArrayItem::from(e))?;
 
     let status = Status {
         app_name: AppName::Github,
@@ -49,7 +52,6 @@ async fn send_status_update() -> Result<(), ErrorArrayItem> {
     let response = receive_message(&mut stream).await?;
     println!("Received response: {:?}", response);
 
-
     Ok(())
 }
 
@@ -57,6 +59,8 @@ async fn send_status_update() -> Result<(), ErrorArrayItem> {
 fn current_timestamp() -> u64 {
     use std::time::{SystemTime, UNIX_EPOCH};
     let start = SystemTime::now();
-    let since_the_epoch = start.duration_since(UNIX_EPOCH).expect("Time went backwards");
+    let since_the_epoch = start
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards");
     since_the_epoch.as_secs()
 }

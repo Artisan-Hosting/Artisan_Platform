@@ -38,6 +38,9 @@ fn main() {
 
     match git_creds.save("/etc/artisan.cf") {
         Ok(_) => pass("New multiplexed file created"),
-        Err(e) => halt(&format!("Error while creating manifest: {}", &e.to_string())),
+        Err(e) => halt(&format!(
+            "Error while creating manifest: {}",
+            &e.to_string()
+        )),
     }
 }

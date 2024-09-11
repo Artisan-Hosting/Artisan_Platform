@@ -86,29 +86,31 @@ pub async fn handle_message(
 
     // If the version check passes let's process the data
     match version_ok {
-        true => match message.msg_type {
-            MessageType::StatusUpdate => {
-                if let Ok(status) = serde_json::from_value::<Status>(message.payload) {
-                    if let Err(err) = handle_status_update(state.clone(), status).await{
+        true => {
+            match message.msg_type {
+                MessageType::StatusUpdate => {
+                    if let Ok(status) = serde_json::from_value::<Status>(message.payload) {
+                        if let Err(err) = handle_status_update(state.clone(), status).await {
+                            ErrorArray::new(vec![err]).display(false);
+                        };
+                        send_acknowledge(stream).await;
+                    }
+                }
+                MessageType::Acknowledgment => {
+                    let email: Email = Email { subject: format!("Connection dropped Erroneous communication"), 
+                body: format!("Machine: {} has dropped a connection due to non standard communication", get_machine_id()) };
+                    if let Err(err) = EmailSecure::new(email) {
                         ErrorArray::new(vec![err]).display(false);
                     };
-                    send_acknowledge(stream).await;
+                    panic!("Connection dropped non standard communication");
+                }
+                MessageType::Query => {
+                    if let Ok(query) = serde_json::from_value::<QueryMessage>(message.payload) {
+                        handle_query(state.clone(), query, stream).await;
+                    }
                 }
             }
-            MessageType::Acknowledgment => {
-                let email: Email = Email { subject: format!("Connection dropped Erroneous communication"), 
-                body: format!("Machine: {} has dropped a connection due to non standard communication", get_machine_id()) };
-                if let Err(err) = EmailSecure::new(email) {
-                    ErrorArray::new(vec![err]).display(false);
-                };
-                panic!("Connection dropped non standard communication");
-            }
-            MessageType::Query => {
-                if let Ok(query) = serde_json::from_value::<QueryMessage>(message.payload) {
-                    handle_query(state.clone(), query, stream).await;
-                }
-            }
-        },
+        }
         false => warn("Connection dropped client out of date"),
     }
 }
