@@ -73,7 +73,7 @@ impl GitAction {
                 let val = path_present(destination, err_to_drop.clone());
                 let url = format!("https://github.com/{}/{}.git", repo_owner, repo_name);
                 let val2 =
-                    execute_git_command(&["clone --mirror", &url, destination.to_str().unwrap()])
+                    execute_git_command(&["clone", "--mirror", &url, destination.to_str().unwrap()])
                         .await;
 
                 if val.is_ok() {
