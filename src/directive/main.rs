@@ -19,7 +19,10 @@ use dusa_collection_utils::{
 };
 use simple_pretty::{notice, warn};
 use std::{
-    fs, io::{Read, Write}, thread, time::Duration
+    fs,
+    io::{Read, Write},
+    thread,
+    time::Duration,
 };
 
 pub const SYSTEM_DIRECTIVE_PATH: &str = "/tmp";

@@ -18,11 +18,9 @@ use tokio::time;
 async fn main() {
     simple_pretty::output("GREEN", &format!("Git monitor initialized"));
 
-    thread::spawn( || {
-        loop {
-            thread::sleep(Duration::from_secs(60));
-            notice("Git monitor running");
-        }
+    thread::spawn(|| loop {
+        thread::sleep(Duration::from_secs(60));
+        notice("Git monitor running");
     });
 
     loop {
