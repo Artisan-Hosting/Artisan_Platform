@@ -11,11 +11,12 @@ Description={}
 After=network.target
 
 [Service]
+PermissionsStartOnly=false
 ExecStart={}
 Restart=always
 # running as a user that has the permissions to bind to the ports needed
-User=ais
-Group=nogroup
+User=www-data
+Group=www-data
 Environment=PATH=/usr/bin:/usr/local/bin
 #Environment=NODE_ENV=production
 WorkingDirectory={}

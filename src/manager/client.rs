@@ -1,7 +1,8 @@
 use std::io::{self, Read, Write};
 use std::net::{Shutdown, TcpStream};
 
-use ais_common::manager::{NetworkRequest, NetworkRequestType, NetworkResponse, SERVERADDRESS};
+use ais_common::constants::SERVERADDRESS;
+use ais_common::manager::{NetworkRequest, NetworkRequestType, NetworkResponse};
 
 fn main() -> io::Result<()> {
     // Function to send a request and print the response

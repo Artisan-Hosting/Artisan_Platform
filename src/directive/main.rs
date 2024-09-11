@@ -135,14 +135,15 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
         let description: &str = &format!("Ais project id {}", &directive_parent);
         let service_file_data =
             create_node_systemd_service(&exec_start, &directive_parent, description)?;
-            print!("{}", create_node_systemd_service(&exec_start, &directive_parent, description)?);
 
         // Write the file
         let service_id: String = directive_parent.to_string().replace("/var/www/ais/", "");
 
         let service_path: PathType =
             PathType::Content(format!("/etc/systemd/system/{}.service", service_id));
+
         let mut service_file: fs::File = open_file(service_path, true)?;
+
         service_file
             .write(service_file_data.as_bytes())
             .map_err(|err| ErrorArrayItem::from(err))?;
@@ -240,10 +241,11 @@ async fn main() {
             timestamp: current_timestamp(),
             version: Version::get(),
         };
+
         if let Err(err) = report_status(status).await {
             ErrorArray::new(vec![err]).display(false)
         }
 
-        thread::sleep(Duration::from_secs(25));
+        thread::sleep(Duration::from_secs(10));
     }
 }

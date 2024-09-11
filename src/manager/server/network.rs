@@ -1,4 +1,5 @@
-use ais_common::manager::{NetworkRequest, NetworkRequestType, NetworkResponse, SERVERADDRESS};
+use ais_common::constants::SERVERADDRESS;
+use ais_common::manager::{NetworkRequest, NetworkRequestType, NetworkResponse};
 use ais_common::system::get_system_stats;
 use dusa_collection_utils::errors::ErrorArrayItem;
 use systemctl::Unit;

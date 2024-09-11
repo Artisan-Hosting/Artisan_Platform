@@ -22,9 +22,6 @@ pub struct NetworkResponse {
     pub data: Option<String>,
 }
 
-pub const SERVERADDRESS: &str = "0.0.0.0:8640";
-pub const SERVERPORT: &str = "8640";
-
 impl fmt::Display for NetworkResponse {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Status: {}", self.status)?;
