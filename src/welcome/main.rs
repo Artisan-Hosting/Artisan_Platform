@@ -1,4 +1,7 @@
-use ais_common::{system::{get_machine_id, get_system_stats}, version::Version};
+use ais_common::{
+    system::{get_machine_id, get_system_stats},
+    version::Version,
+};
 use lsb_release::LsbRelease;
 use simple_pretty::output;
 

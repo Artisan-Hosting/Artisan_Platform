@@ -1,14 +1,14 @@
-use std::collections::HashMap;
-use std::error::Error;
-use std::sync::Arc;
-use ais_common::messages::report_status;
-use tokio::time::{self, Duration};
-use ais_common::systemd::{self, ProcessInfo, Services};
 use ais_common::common::{current_timestamp, AppName, AppStatus, Status};
+use ais_common::messages::report_status;
+use ais_common::systemd::{self, ProcessInfo, Services};
 use ais_common::version::Version;
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng};
+use std::collections::HashMap;
+use std::error::Error;
+use std::sync::Arc;
 use tokio::sync::Mutex;
+use tokio::time::{self, Duration};
 
 async fn monitor_services() -> Result<(), Box<dyn Error>> {
     let status_state = Arc::new(Mutex::new(HashMap::new()));
@@ -18,7 +18,7 @@ async fn monitor_services() -> Result<(), Box<dyn Error>> {
     tokio::spawn(async move {
         loop {
             report_status_to_aggregator(status_state_clone.clone()).await;
-            time::sleep(Duration::from_secs(10)).await; // Report status every 10 seconds 
+            time::sleep(Duration::from_secs(10)).await; // Report status every 10 seconds
         }
     });
 
@@ -58,7 +58,10 @@ async fn monitor_services() -> Result<(), Box<dyn Error>> {
                         #[allow(irrefutable_let_patterns)]
                         if let ais_common::systemd::Memory::MemoryConsumed(mem) = info.memory {
                             if mem.parse::<f64>().unwrap_or(0.0) > 1024.0 {
-                                println!("Service {} is consuming more than 1GB of memory", service);
+                                println!(
+                                    "Service {} is consuming more than 1GB of memory",
+                                    service
+                                );
                             }
                         }
                     } else {
@@ -84,7 +87,9 @@ async fn monitor_services() -> Result<(), Box<dyn Error>> {
 async fn report_status_to_aggregator(status_state: Arc<Mutex<HashMap<Services, ProcessInfo>>>) {
     let status_map = status_state.lock().await;
 
-    let all_running = status_map.values().all(|info| info.status == systemd::Status::Running);
+    let all_running = status_map
+        .values()
+        .all(|info| info.status == systemd::Status::Running);
 
     let app_status = if all_running {
         AppStatus::Running

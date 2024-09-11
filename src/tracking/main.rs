@@ -80,16 +80,69 @@ async fn get_lastlog() -> io::Result<Vec<UserSession>> {
 
 fn is_standard_user(user: &str) -> bool {
     let standard_users = [
-        "openvpn", "systemd-oom", "dbus", "ftp", "avahi", "geoclue", "rtkit", "rpcuser", 
-        "polkitd", "rpc", "systemd-coredump", "git", "fwupd", "usbmux", "dusa", "flatpak", 
-        "lightdm", "passim", "mysql", "www-data", "cups", "nobody", "tss", 
-        "systemd-journal-remote", "nm-openvpn", "uuidd", "ollama", "http",
-        "daemon", "bin", "sys", "sync", "games", "man", "lp", "mail", "news", "uucp", "proxy",
-        "backup", "list", "irc", "gnats", "_apt", "systemd-timesync", "systemd-network", 
-        "systemd-resolve", "systemd-bus-proxy", "Debian-exim", "statd", "tcpdump", "sshd", "nslcd",
-        "netdata", "_rpc", "messagebus", "_chrony", "redis", 
+        "openvpn",
+        "systemd-oom",
+        "dbus",
+        "ftp",
+        "avahi",
+        "geoclue",
+        "rtkit",
+        "rpcuser",
+        "polkitd",
+        "rpc",
+        "systemd-coredump",
+        "git",
+        "fwupd",
+        "usbmux",
+        "dusa",
+        "flatpak",
+        "lightdm",
+        "passim",
+        "mysql",
+        "www-data",
+        "cups",
+        "nobody",
+        "tss",
+        "systemd-journal-remote",
+        "nm-openvpn",
+        "uuidd",
+        "ollama",
+        "http",
+        "daemon",
+        "bin",
+        "sys",
+        "sync",
+        "games",
+        "man",
+        "lp",
+        "mail",
+        "news",
+        "uucp",
+        "proxy",
+        "backup",
+        "list",
+        "irc",
+        "gnats",
+        "_apt",
+        "systemd-timesync",
+        "systemd-network",
+        "systemd-resolve",
+        "systemd-bus-proxy",
+        "Debian-exim",
+        "statd",
+        "tcpdump",
+        "sshd",
+        "nslcd",
+        "netdata",
+        "_rpc",
+        "messagebus",
+        "_chrony",
+        "redis",
         "ais", // This is the internal ais user
-        "cockpit-ws", "pcp", "cockpit-wsinstance", "dnsmasq",
+        "cockpit-ws",
+        "pcp",
+        "cockpit-wsinstance",
+        "dnsmasq",
     ];
     standard_users.contains(&user)
 }
@@ -144,9 +197,7 @@ async fn get_auditd_logs(uid: &str, event_type: &str) -> io::Result<usize> {
         .output()?
         .stdout;
 
-    let event_count = String::from_utf8_lossy(&output)
-        .lines()
-        .count();
+    let event_count = String::from_utf8_lossy(&output).lines().count();
 
     Ok(event_count)
 }
@@ -194,7 +245,10 @@ async fn summarize_data(
             summary.keys = keys;
         }
 
-        if summary.authentication_attempts > 0 || summary.anomaly_events > 0 || summary.command_count > 1000000 {
+        if summary.authentication_attempts > 0
+            || summary.anomaly_events > 0
+            || summary.command_count > 1000000
+        {
             warning = true;
         }
     }
@@ -210,7 +264,12 @@ async fn summarize_data(
 }
 
 async fn store_summary(summaries: HashMap<String, SessionSummary>) -> io::Result<()> {
-    del_file(SUMMARY_FILE_PATH.into(), ErrorArray::new_container(), WarningArray::new_container()).unwrap();
+    del_file(
+        SUMMARY_FILE_PATH.into(),
+        ErrorArray::new_container(),
+        WarningArray::new_container(),
+    )
+    .unwrap();
 
     // Open the temp file to capture plain data
     let mut temp_file = OpenOptions::new()
@@ -237,11 +296,7 @@ async fn store_summary(summaries: HashMap<String, SessionSummary>) -> io::Result
     all_summary_data.push_str("Journal Logs:\n");
     for (_, summary) in &summaries {
         for (service, logs) in &summary.journal_logs {
-            let service_logs = format!(
-                "Service: {}\n  - {}\n",
-                service,
-                logs.join("\n  - ")
-            );
+            let service_logs = format!("Service: {}\n  - {}\n", service, logs.join("\n  - "));
             all_summary_data.push_str(&service_logs);
         }
     }

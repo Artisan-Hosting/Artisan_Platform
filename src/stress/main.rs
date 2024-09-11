@@ -1,7 +1,7 @@
+use reqwest::Client;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Semaphore;
-use reqwest::Client;
 use tokio::time::sleep;
 
 // Function to simulate a single HTTP request
@@ -46,7 +46,7 @@ async fn simulate_traffic(url: &str, num_users: usize, requests_per_user: usize)
 #[tokio::main]
 async fn main() {
     let url = "https://mito.artisanhosting.net"; // Replace with your website URL
-    // let url = "https://mitobyte.com"; // Replace with your website URL
+                                                 // let url = "https://mitobyte.com"; // Replace with your website URL
     let num_users = 2500; // Number of concurrent users to simulate
     let requests_per_user = 20; // Number of requests each user sends
 
