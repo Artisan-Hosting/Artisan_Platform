@@ -82,11 +82,6 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
             truncate(&create_hash(auth.clone().repo), 8)
         ));
 
-        // Log available branches (for debugging)
-        // let list_branches = GitAction::ListBranches {
-        //     destination: git_project_path.clone_path(),
-        // };
-        // list_branches.execute().await?;
 
         // Set up switching to the target branch explicitly using refs/heads/
         let git_switch = GitAction::Switch {
@@ -97,6 +92,10 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
         let git_set_tracking = GitAction::SetTrack(git_project_path.clone_path());
 
         if git_project_path.exists() {
+            // Log available branches (for debugging)
+            let list_branches = GitAction::Branch(git_project_path.clone_path());
+            notice(&format!{"{:?}", list_branches.execute().await?});
+
             // Set safe directory
             let set_safe = GitAction::SetSafe(git_project_path.clone_path());
             set_safe.execute().await?;
