@@ -19,10 +19,7 @@ use dusa_collection_utils::{
 };
 use simple_pretty::{notice, warn};
 use std::{
-    fs::{self, File},
-    io::{Read, Write},
-    thread,
-    time::Duration,
+    fs, io::{Read, Write}, thread, time::Duration
 };
 
 pub const SYSTEM_DIRECTIVE_PATH: &str = "/tmp";
@@ -152,7 +149,7 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
         make_file(service_path.clone_path(), ErrorArray::new_container())
             .uf_unwrap()
             .map_err(|mut ea| ea.pop())?;
-        
+
         let mut service_file: fs::File = open_file(service_path, true)?;
         // let mut service_file: fs::File = File::open(service_path)?;
 
