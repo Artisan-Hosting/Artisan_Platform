@@ -74,7 +74,6 @@ create_service_files:
 		echo "Description=Service for $${bin}" >> /etc/systemd/system/$${bin}.service; \
 		echo "After=network.target" >> /etc/systemd/system/$${bin}.service; \
 		echo "Wants=aggregator.service" >> /etc/systemd/system/$${bin}.service; \
-		echo "Requires=aggregator.service" >> /etc/systemd/system/$${bin}.service; \
 		echo "[Service]" >> /etc/systemd/system/$${bin}.service; \
 		echo "Type=simple" >> /etc/systemd/system/$${bin}.service; \
 		echo "ExecStart=/opt/artisan_platform/bin/$${bin}" >> /etc/systemd/system/$${bin}.service; \
