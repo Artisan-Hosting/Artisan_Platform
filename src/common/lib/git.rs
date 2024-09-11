@@ -2,7 +2,7 @@ use std::{env, future::Future, pin::Pin, process::Output};
 
 use dusa_collection_utils::{
     errors::{ErrorArrayItem, Errors},
-    types::PathType,
+    types::{ClonePath, PathType},
 };
 use tokio::process::Command;
 
@@ -57,6 +57,9 @@ pub enum GitAction {
     SetSafe(PathType),
     SetTrack(PathType),
     Branch(PathType),
+    Fetch {
+        destination: PathType,
+    },
 }
 
 impl GitAction {
@@ -158,6 +161,36 @@ impl GitAction {
                         false => Ok(None),
                     }
                 }
+
+                GitAction::Fetch { destination } => {
+                    // Define the `git fetch` command
+                    let git_fetch = tokio::process::Command::new("git")
+                        .arg("fetch")
+                        .arg("--all")
+                        .current_dir(destination.clone_path()) // Ensure the command runs inside the correct directory
+                        .output()
+                        .await;
+
+                    // Handle the result of the `git fetch` command
+                    match git_fetch {
+                        Ok(output) => {
+                            if !output.status.success() {
+                                let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+                                return Err(ErrorArrayItem::new(Errors::GeneralError, format!(
+                                    "Failed to fetch from remote: {}",
+                                    stderr
+                                )));
+                            }
+                            simple_pretty::notice("Fetched latest updates from remote repository");
+                            Ok(None)
+                        }
+                        Err(e) => Err(ErrorArrayItem::new(Errors::GeneralError, format!(
+                            "Error executing git fetch: {}",
+                            e
+                        ))),
+                    }
+                }
+
                 GitAction::Switch {
                     branch,
                     destination,
@@ -227,7 +260,6 @@ impl GitAction {
         })
     }
 }
-
 
 /// Execute a Git command.
 async fn execute_git_command(args: &[&str]) -> Result<Output, ErrorArrayItem> {

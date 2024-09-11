@@ -4,39 +4,37 @@ use ais_common::git_data::GitCredentials;
 use ais_common::messages::report_status;
 use ais_common::setcap::{get_id, set_file_ownership, SystemUsers};
 use ais_common::version::Version;
-use dusa_collection_utils::errors::{ErrorArray, ErrorArrayItem};
+use dusa_collection_utils::errors::{ErrorArray, ErrorArrayItem, Errors};
 use dusa_collection_utils::functions::{create_hash, truncate};
 use dusa_collection_utils::types::{ClonePath, PathType};
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng};
 use simple_pretty::notice;
-use std::thread;
-use std::time::Duration;
-use tokio::time;
+use tokio::task;
+use tokio::time::{self, Duration};
 
 #[tokio::main]
 async fn main() {
-    simple_pretty::output("GREEN", &format!("Git monitor initialized"));
+    simple_pretty::output("GREEN", "Git monitor initialized");
 
-    thread::spawn(|| loop {
-        thread::sleep(Duration::from_secs(60));
-        notice("Git monitor running");
+    // Using `tokio::spawn` instead of blocking thread::spawn
+    tokio::spawn(async {
+        loop {
+            time::sleep(Duration::from_secs(60)).await;
+            notice("Git monitor running");
+        }
     });
 
     loop {
-        let credentials = if let Some(data) = GitCredentials::new().into() {
-            let cred_data = match data {
-                Ok(d) => d,
-                Err(e) => {
-                    notice("No git credentials loaded");
-                    ErrorArray::new(vec![e]).display(false);
-                    std::thread::sleep(Duration::from_secs(30));
-                    return;
-                }
-            };
-            cred_data
-        } else {
-            unreachable!();
+        let credentials = match GitCredentials::new().into() {
+            Some(Ok(cred_data)) => cred_data,
+            Some(Err(e)) => {
+                notice("No git credentials loaded");
+                ErrorArray::new(vec![e]).display(false);
+                time::sleep(Duration::from_secs(30)).await;
+                return;
+            }
+            None => unreachable!(),
         };
 
         match git_loop(credentials.clone()).await {
@@ -54,7 +52,7 @@ async fn main() {
             }
             Err(e) => {
                 ErrorArray::new(vec![e]).display(false);
-                // Set the application status to warning in the aggregator as it's running with faults
+                // Set the application status to warning in the aggregator
                 let status: Status = Status {
                     app_name: AppName::Github,
                     app_status: AppStatus::Warning,
@@ -67,7 +65,8 @@ async fn main() {
             }
         }
 
-        time::sleep(Duration::from_secs(20)).await; // Report status every 10 seconds
+        // Sleep between iterations
+        time::sleep(Duration::from_secs(20)).await;
     }
 }
 
@@ -83,9 +82,15 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
             truncate(&create_hash(auth.clone().repo), 8)
         ));
 
-        // Switching to target branch
+        // Log available branches (for debugging)
+        // let list_branches = GitAction::ListBranches {
+        //     destination: git_project_path.clone_path(),
+        // };
+        // list_branches.execute().await?;
+
+        // Set up switching to the target branch explicitly using refs/heads/
         let git_switch = GitAction::Switch {
-            branch: auth.branch.clone(),
+            branch: format!("refs/heads/{}", auth.branch.clone()), // Force the branch reference
             destination: git_project_path.clone(),
         };
 
@@ -96,6 +101,12 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
             let set_safe = GitAction::SetSafe(git_project_path.clone_path());
             set_safe.execute().await?;
 
+            // Fetch branches to ensure the latest remote branches are available
+            let fetch_branches = GitAction::Fetch {
+                destination: git_project_path.clone_path(),
+            };
+            fetch_branches.execute().await?;
+
             // Pull update
             let pull_update = GitAction::Pull {
                 target_branch: auth.clone().branch,
@@ -104,25 +115,24 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
 
             match pull_update.execute().await {
                 Ok(_) => {
+                    // Set tracking branch and switch branch if pull succeeds
                     git_set_tracking.execute().await?;
                     git_switch.execute().await?;
-                },
+                }
                 Err(e) => {
-                    // If pull fails due to safe directory error, set the directory as safe and retry
+                    // If pull fails due to safe directory error, retry setting it as safe
                     if e.to_string().contains("safe directory") {
                         let set_safe = GitAction::SetSafe(git_project_path.clone_path());
                         set_safe.execute().await?;
                         git_set_tracking.execute().await?;
-                        pull_update.execute().await?;
+                        pull_update.execute().await?; // Retry pull
                     } else {
                         return Err(e);
                     }
                 }
             }
-
-            // git_set_tracking.execute().await?;
-            // git_switch.execute().await?;
         } else {
+            // If the directory doesn't exist, clone the repo
             let git_clone = GitAction::Clone {
                 repo_name: auth.clone().repo,
                 repo_owner: auth.clone().user,
@@ -131,14 +141,15 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
             git_clone.execute().await?;
             git_set_tracking.execute().await?;
 
-            // Setting ownership to the web user
+            // Set ownership to the web user
             let webuser = get_id(SystemUsers::Www)?;
             set_file_ownership(&git_project_path, webuser.0, webuser.1)?;
 
-            // Setting safe directory
+            // Set the directory as safe
             let set_safe = GitAction::SetSafe(git_project_path.clone_path());
             set_safe.execute().await?;
 
+            // Switch to the correct branch after cloning
             git_switch.execute().await?;
         }
     }
