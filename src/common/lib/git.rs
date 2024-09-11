@@ -1,6 +1,7 @@
+use std::{env, future::Future, pin::Pin, process::Output};
+
 use dusa_collection_utils::{
-    errors::{ErrorArray, ErrorArrayItem, Errors},
-    functions::path_present,
+    errors::{ErrorArrayItem, Errors},
     types::PathType,
 };
 use tokio::process::Command;
@@ -54,127 +55,182 @@ pub enum GitAction {
     },
     // git config --global --add safe.directory /var/www/current/path
     SetSafe(PathType),
+    SetTrack(PathType),
+    Branch(PathType),
 }
 
 impl GitAction {
     /// Execute the Git action.
-    pub async fn execute(&self) -> Result<bool, ErrorArrayItem> {
-        let err_to_drop = ErrorArray::new_container();
-        if let Err(errs) = check_git_installed().await {
-            return Err(errs);
-        };
+    pub fn execute<'a>(
+        &'a self,
+    ) -> Pin<Box<dyn Future<Output = Result<Option<Output>, ErrorArrayItem>> + 'a>> {
+        Box::pin(async move {
+            if let Err(errs) = check_git_installed().await {
+                return Err(errs);
+            };
 
-        match self {
-            GitAction::Clone {
-                destination,
-                repo_name,
-                repo_owner,
-            } => {
-                let val = path_present(destination, err_to_drop.clone());
-                let url = format!("https://github.com/{}/{}.git", repo_owner, repo_name);
-                let val2 =
-                    execute_git_command(&["clone", "--mirror", &url, destination.to_str().unwrap()])
-                        .await;
-
-                if val.is_ok() {
-                    match val2 {
-                        Ok(_) => return Ok(true),
-                        Err(e) => return Err(e),
+            match self {
+                GitAction::Clone {
+                    destination,
+                    repo_name,
+                    repo_owner,
+                } => {
+                    let url = format!("https://github.com/{}/{}.git", repo_owner, repo_name);
+                    execute_git_command(&["clone", &url, &destination.to_string()])
+                        .await
+                        .map(|o| Some(o))
+                }
+                GitAction::Pull {
+                    target_branch,
+                    destination,
+                } => match destination.exists() {
+                    true => {
+                        execute_git_command(&["-C", &destination.to_string(), "pull"]).await?;
+                        execute_git_command(&[
+                            "-C",
+                            &destination.to_string(),
+                            "switch",
+                            target_branch,
+                        ])
+                        .await
+                        .map(|op| Some(op))
                     }
-                } else {
-                    return Err(ErrorArrayItem::new(
-                        Errors::InvalidFile,
-                        String::from("Repo path not found"),
-                    ));
-                }
-            }
-            GitAction::Pull {
-                target_branch,
-                destination,
-            } => {
-                let path = path_present(destination, err_to_drop.clone());
-                if path.is_ok() {
-                    let _data = path.get_ok().unwrap();
-                    let _ =
-                        execute_git_command(&["-C", destination.to_str().unwrap(), "pull"]).await?;
-                    let _ = execute_git_command(&[
+                    false => {
+                        return Err(ErrorArrayItem::new(
+                            Errors::InvalidFile,
+                            String::from("Repo path not found"),
+                        ))
+                    }
+                },
+                GitAction::Push { directory } => match directory.exists() {
+                    true => execute_git_command(&["-C", &directory.to_string(), "push"])
+                        .await
+                        .map(|op| Some(op)),
+                    false => {
+                        return Err(ErrorArrayItem::new(
+                            Errors::InvalidFile,
+                            String::from("Repo path not found"),
+                        ))
+                    }
+                },
+                GitAction::Stage { directory, files } => match directory.exists() {
+                    true => {
+                        let directory_string = directory.to_string();
+                        let mut args = vec!["-C", &directory_string, "stage --all"];
+                        args.extend(files.iter().map(|s| s.as_str()));
+                        execute_git_command(&args).await.map(|op| Some(op))
+                    }
+                    false => {
+                        return Err(ErrorArrayItem::new(
+                            Errors::InvalidFile,
+                            String::from("Repo path not found"),
+                        ))
+                    }
+                },
+                GitAction::Commit { directory, message } => match directory.exists() {
+                    true => execute_git_command(&[
                         "-C",
-                        destination.to_str().unwrap(),
-                        "switch",
-                        target_branch,
-                    ])
-                    .await?;
-                    return Ok(true);
-                } else {
-                    return Err(path.get_err().unwrap().pop());
-                }
-            }
-            GitAction::Push { directory } => {
-                let path = path_present(directory, err_to_drop.clone());
-                if path.is_ok() {
-                    execute_git_command(&["-C", directory.to_str().unwrap(), "push"]).await?;
-                    return Ok(true);
-                } else {
-                    return Err(path.get_err().unwrap().pop());
-                }
-            }
-            GitAction::Stage { directory, files } => {
-                let path = path_present(directory, err_to_drop.clone());
-                if path.is_ok() {
-                    let mut args = vec!["-C", directory.to_str().unwrap(), "stage --all"];
-                    args.extend(files.iter().map(|s| s.as_str()));
-                    execute_git_command(&args).await?;
-                    return Ok(true);
-                } else {
-                    return Err(path.get_err().unwrap().pop());
-                }
-            }
-            GitAction::Commit { directory, message } => {
-                let path = path_present(directory, err_to_drop.clone());
-                if path.is_ok() {
-                    execute_git_command(&[
-                        "-C",
-                        directory.to_str().unwrap(),
+                        &directory.to_string(),
                         "commit",
                         "-m",
                         message,
                     ])
-                    .await?;
-                    return Ok(true);
-                } else {
-                    return Err(path.get_err().unwrap().pop());
+                    .await
+                    .map(|op| Some(op)),
+                    false => {
+                        return Err(ErrorArrayItem::new(
+                            Errors::InvalidFile,
+                            String::from("Repo path not found"),
+                        ))
+                    }
+                },
+                // THIS IS A CHEAP F*** HACK If remote is ahead the output will have data, else it's none
+                GitAction::CheckRemoteAhead(directory) => {
+                    let data = check_remote_ahead(directory).await?;
+                    match data {
+                        true => Ok(Some(
+                            Command::new("echo")
+                                .arg("hi")
+                                .output()
+                                .await
+                                .map_err(|err| ErrorArrayItem::from(err))?,
+                        )),
+                        false => Ok(None),
+                    }
+                }
+                GitAction::Switch {
+                    branch,
+                    destination,
+                } => execute_git_command(&["-C", &destination.to_string(), "switch", branch])
+                    .await
+                    .map(|op| Some(op)),
+                // ! This is patched out at the system level. git config --global --add safe.directory '*'
+                // ! READ THIS: https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
+                GitAction::SetSafe(directory) => {
+                    // Split the command correctly into separate arguments
+                    execute_git_command(&[
+                        "config",
+                        "--global",
+                        "--add",
+                        "safe.directory",
+                        &directory.to_string(),
+                    ])
+                    .await
+                    .map(|op| Some(op))
+                }
+                GitAction::SetTrack(directory) => {
+                    execute_git_command(&["fetch"]).await?;
+                    let branch = Self::Branch(directory.clone()).execute().await?;
+                    match branch {
+                        Some(d) => {
+                            let output = String::from_utf8_lossy(&d.stdout);
+                            let filtered_lines: Vec<&str> =
+                                output.lines().filter(|line| !line.contains("->")).collect();
+
+                            for remote in filtered_lines {
+                                // Remove ANSI escape codes with a simple replacement or regex if needed
+                                let clean_remote = remote.replace("\x1B", "").replace("[0m", "");
+
+                                // Extract the remote branch name without `origin/`
+                                let branch_name = clean_remote
+                                    .trim()
+                                    .replace("origin/", "")
+                                    .replace("main", "")
+                                    .replace("master", "");
+
+                                if !branch_name.is_empty() {
+                                    execute_git_command(&[
+                                        "branch",
+                                        "--track",
+                                        &branch_name,
+                                        &clean_remote,
+                                    ])
+                                    .await?;
+                                }
+                            }
+                            Ok(None)
+                        }
+                        None => Err(ErrorArrayItem::new(
+                            Errors::Git,
+                            format!("Invalid branch data given from the current repo"),
+                        )),
+                    }
+                }
+                GitAction::Branch(directory) => {
+                    // let original_dir = env::current_dir()?;
+                    env::set_current_dir(directory)?;
+                    execute_git_command(&["branch", "-r"])
+                        .await
+                        .map(|op| Some(op))
                 }
             }
-            GitAction::CheckRemoteAhead(directory) => match directory.exists() {
-                true => check_remote_ahead(directory).await,
-                false => return Ok(false),
-            },
-            GitAction::Switch {
-                branch,
-                destination,
-            } => execute_git_command(&["-C", destination.to_str().unwrap(), "switch", branch])
-                .await
-                .map(|_ok| true),
-            // ! This is patched out at the system level. git config --global --add safe.directory '*'
-            // ! READ THIS: https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
-            GitAction::SetSafe(directory) => {
-                // Split the command correctly into separate arguments
-                execute_git_command(&[
-                    "config",
-                    "--global",
-                    "--add",
-                    "safe.directory",
-                    directory.to_str().unwrap(),
-                ])
-                .await
-                .map(|_ok| true)
-            }
-        }
+        })
     }
 }
 
+
 /// Execute a Git command.
-async fn execute_git_command(args: &[&str]) -> Result<(), ErrorArrayItem> {
+async fn execute_git_command(args: &[&str]) -> Result<Output, ErrorArrayItem> {
     let output: std::process::Output = match Command::new("git").args(args).output().await {
         Ok(output) => output,
         Err(io_err) => {
@@ -183,7 +239,7 @@ async fn execute_git_command(args: &[&str]) -> Result<(), ErrorArrayItem> {
     };
 
     if output.status.success() {
-        Ok(())
+        Ok(output)
     } else {
         return Err(ErrorArrayItem::new(
             Errors::GeneralError,
@@ -206,10 +262,11 @@ async fn check_remote_ahead(directory: &PathType) -> Result<bool, ErrorArrayItem
 
 /// Execute a Git hash command.
 async fn execute_git_hash_command(args: &[&str]) -> Result<String, ErrorArrayItem> {
-    let output: std::process::Output = match Command::new("git").args(args).output().await {
-        Ok(output) => output,
-        Err(io_err) => return Err(ErrorArrayItem::from(io_err)),
-    };
+    let output: std::process::Output = Command::new("git")
+        .args(args)
+        .output()
+        .await
+        .map_err(|err| ErrorArrayItem::from(err))?;
 
     if output.status.success() {
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())

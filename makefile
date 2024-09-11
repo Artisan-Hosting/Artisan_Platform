@@ -30,6 +30,8 @@ copy:
 	cp $(BUILD_DIR)/ais_directive $(BIN_DIR)/ais_directive
 	cp $(BUILD_DIR)/ais_security $(BIN_DIR)/ais_security
 	cp $(BUILD_DIR)/ais_manager $(BIN_DIR)/ais_manager
+	cp $(BUILD_DIR)/ais_credentials $(BIN_DIR)/credentials
+	cp $(BUILD_DIR)/ais_welcome $(BIN_DIR)/welcome
 
 # Create system user and group
 create_user:

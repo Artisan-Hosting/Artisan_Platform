@@ -89,6 +89,8 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
             destination: git_project_path.clone(),
         };
 
+        let git_set_tracking = GitAction::SetTrack(git_project_path.clone_path());
+
         if git_project_path.exists() {
             // Set safe directory
             let set_safe = GitAction::SetSafe(git_project_path.clone_path());
@@ -101,12 +103,16 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
             };
 
             match pull_update.execute().await {
-                Ok(_) => _ = git_switch.execute().await?,
+                Ok(_) => {
+                    git_set_tracking.execute().await?;
+                    git_switch.execute().await?;
+                },
                 Err(e) => {
                     // If pull fails due to safe directory error, set the directory as safe and retry
                     if e.to_string().contains("safe directory") {
                         let set_safe = GitAction::SetSafe(git_project_path.clone_path());
                         set_safe.execute().await?;
+                        git_set_tracking.execute().await?;
                         pull_update.execute().await?;
                     } else {
                         return Err(e);
@@ -114,7 +120,8 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
                 }
             }
 
-            git_switch.execute().await?;
+            // git_set_tracking.execute().await?;
+            // git_switch.execute().await?;
         } else {
             let git_clone = GitAction::Clone {
                 repo_name: auth.clone().repo,
@@ -122,6 +129,7 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
                 destination: git_project_path.clone_path(),
             };
             git_clone.execute().await?;
+            git_set_tracking.execute().await?;
 
             // Setting ownership to the web user
             let webuser = get_id(SystemUsers::Www)?;
