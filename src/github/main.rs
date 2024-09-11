@@ -4,13 +4,12 @@ use ais_common::git_data::GitCredentials;
 use ais_common::messages::report_status;
 use ais_common::setcap::{get_id, set_file_ownership, SystemUsers};
 use ais_common::version::Version;
-use dusa_collection_utils::errors::{ErrorArray, ErrorArrayItem, Errors};
+use dusa_collection_utils::errors::{ErrorArray, ErrorArrayItem};
 use dusa_collection_utils::functions::{create_hash, truncate};
 use dusa_collection_utils::types::{ClonePath, PathType};
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng};
 use simple_pretty::notice;
-use tokio::task;
 use tokio::time::{self, Duration};
 
 #[tokio::main]
@@ -147,9 +146,6 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
                 destination: git_project_path.clone_path(),
             };
             fetch_update.execute().await?; // Fetch the latest from the remote to get branch data
-
-            // Ensure that after cloning, we force the branch switch
-            // git_switch.execute().await?;
         }
     }
 
