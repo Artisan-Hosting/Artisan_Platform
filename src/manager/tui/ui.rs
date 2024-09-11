@@ -1,6 +1,14 @@
-use std::{collections::{HashMap, VecDeque}, sync::{Arc, Mutex}};
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::{Arc, Mutex},
+};
 
-use tui::{layout::{Alignment, Constraint, Direction, Layout}, style::{Color, Modifier, Style}, symbols, widgets::{Axis, Block, Borders, Chart, Dataset, List, ListItem, Paragraph}};
+use tui::{
+    layout::{Alignment, Constraint, Direction, Layout},
+    style::{Color, Modifier, Style},
+    symbols,
+    widgets::{Axis, Block, Borders, Chart, Dataset, List, ListItem, Paragraph},
+};
 
 use crate::centered_paragraph;
 
@@ -88,7 +96,6 @@ pub fn draw_ui<B: tui::backend::Backend>(
     let git_str = git_data.lock().unwrap().clone();
     f.render_widget(centered_paragraph(git_str), upper_chunks[2]);
 
-
     // Main block with messages
     let flash = *flash_state.lock().unwrap();
     let items: Vec<ListItem> = {
@@ -96,7 +103,8 @@ pub fn draw_ui<B: tui::backend::Backend>(
         msgs.iter()
             .map(|(_key, (msg, color))| {
                 if flash && *color == Color::Gray {
-                    ListItem::new(msg.clone()).style(Style::default().fg(*color).add_modifier(Modifier::BOLD))
+                    ListItem::new(msg.clone())
+                        .style(Style::default().fg(*color).add_modifier(Modifier::BOLD))
                 } else {
                     ListItem::new(msg.clone()).style(Style::default().fg(*color))
                 }
@@ -113,7 +121,9 @@ pub fn draw_ui<B: tui::backend::Backend>(
     } else {
         Color::Red
     };
-    let status_block = Block::default().title("Aggregator Status").borders(Borders::ALL);
+    let status_block = Block::default()
+        .title("Aggregator Status")
+        .borders(Borders::ALL);
     f.render_widget(status_block, chunks[2]);
     f.render_widget(
         Paragraph::new(status.clone())
@@ -128,30 +138,33 @@ pub fn draw_ui<B: tui::backend::Backend>(
     let cpu_history_iter: Vec<(f64, f64)> = cpu_history.iter().cloned().collect::<Vec<_>>();
     let ram_history_iter: Vec<(f64, f64)> = ram_history.iter().cloned().collect::<Vec<_>>();
 
+    let cpu_dataset = vec![Dataset::default()
+        .name("CPU Usage")
+        .marker(symbols::Marker::Dot)
+        .style(Style::default().fg(Color::Red))
+        .data(&cpu_history_iter)];
 
-    let cpu_dataset = vec![
-        Dataset::default()
-            .name("CPU Usage")
-            .marker(symbols::Marker::Dot)
-            .style(Style::default().fg(Color::Red))
-            .data(&cpu_history_iter),
-    ];
-
-    let ram_dataset = vec![
-        Dataset::default()
-            .name("RAM Usage")
-            .marker(symbols::Marker::Dot)
-            .style(Style::default().fg(Color::Blue))
-            .data(&ram_history_iter),
-    ];
+    let ram_dataset = vec![Dataset::default()
+        .name("RAM Usage")
+        .marker(symbols::Marker::Dot)
+        .style(Style::default().fg(Color::Blue))
+        .data(&ram_history_iter)];
 
     let cpu_chart = Chart::new(cpu_dataset)
-        .block(Block::default().title("CPU Usage Over Time").borders(Borders::ALL))
+        .block(
+            Block::default()
+                .title("CPU Usage Over Time")
+                .borders(Borders::ALL),
+        )
         .x_axis(Axis::default().title("Time").bounds([0.0, 100.0]))
         .y_axis(Axis::default().title("Usage %").bounds([0.0, 100.0]));
 
     let ram_chart = Chart::new(ram_dataset)
-        .block(Block::default().title("RAM Usage Over Time").borders(Borders::ALL))
+        .block(
+            Block::default()
+                .title("RAM Usage Over Time")
+                .borders(Borders::ALL),
+        )
         .x_axis(Axis::default().title("Time").bounds([0.0, 100.0]))
         .y_axis(Axis::default().title("Usage GB").bounds([0.0, 100.0]));
 
@@ -166,5 +179,8 @@ pub fn draw_ui<B: tui::backend::Backend>(
                        u: Update GitHub Repo";
     let helper_block = Block::default().title("Helper").borders(Borders::ALL);
     f.render_widget(helper_block, chunks[4]);
-    f.render_widget(Paragraph::new(helper_text).alignment(Alignment::Center), chunks[4]);
+    f.render_widget(
+        Paragraph::new(helper_text).alignment(Alignment::Center),
+        chunks[4],
+    );
 }

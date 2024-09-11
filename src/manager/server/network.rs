@@ -4,9 +4,8 @@ use ais_common::system::get_system_stats;
 use dusa_collection_utils::errors::ErrorArrayItem;
 use systemctl::Unit;
 // network.rs
-use tokio::net::TcpListener;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-
+use tokio::net::TcpListener;
 
 use crate::{query_aggregator, query_git_config, update_git_config};
 
@@ -17,7 +16,7 @@ pub async fn start_server() -> Result<(), ErrorArrayItem> {
 
     loop {
         let (mut socket, _) = listener.accept().await?;
-        
+
         tokio::spawn(async move {
             let mut buf = [0; 1024];
 
@@ -39,27 +38,25 @@ pub async fn start_server() -> Result<(), ErrorArrayItem> {
                     };
 
                     match request.request_type {
-                        NetworkRequestType::QUERYSTATUS => {
-                            match query_aggregator().await {
-                                Ok(statuses) => {
-                                    let response = NetworkResponse {
-                                        status: String::from("Success"),
-                                        data: Some(serde_json::to_string(&statuses).unwrap()),
-                                    };
-                                    let response = serde_json::to_string(&response).unwrap();
-                                    let _ = socket.write_all(response.as_bytes()).await;
-                                }
-                                Err(e) => {
-                                    eprintln!("Failed to query aggregator: {}", e);
-                                    let response = NetworkResponse {
-                                        status: String::from("Error"),
-                                        data: Some(String::from("Failed to query aggregator")),
-                                    };
-                                    let response = serde_json::to_string(&response).unwrap();
-                                    let _ = socket.write_all(response.as_bytes()).await;
-                                }
+                        NetworkRequestType::QUERYSTATUS => match query_aggregator().await {
+                            Ok(statuses) => {
+                                let response = NetworkResponse {
+                                    status: String::from("Success"),
+                                    data: Some(serde_json::to_string(&statuses).unwrap()),
+                                };
+                                let response = serde_json::to_string(&response).unwrap();
+                                let _ = socket.write_all(response.as_bytes()).await;
                             }
-                        }
+                            Err(e) => {
+                                eprintln!("Failed to query aggregator: {}", e);
+                                let response = NetworkResponse {
+                                    status: String::from("Error"),
+                                    data: Some(String::from("Failed to query aggregator")),
+                                };
+                                let response = serde_json::to_string(&response).unwrap();
+                                let _ = socket.write_all(response.as_bytes()).await;
+                            }
+                        },
                         NetworkRequestType::UPDATEGITREPO => {
                             if let Some(data) = request.data {
                                 match serde_json::from_str(&data) {
@@ -68,18 +65,24 @@ pub async fn start_server() -> Result<(), ErrorArrayItem> {
                                             eprintln!("Failed to update Git config: {}", e);
                                             let response = NetworkResponse {
                                                 status: String::from("Error"),
-                                                data: Some(String::from("Failed to update Git config")),
+                                                data: Some(String::from(
+                                                    "Failed to update Git config",
+                                                )),
                                             };
-                                            let response = serde_json::to_string(&response).unwrap();
+                                            let response =
+                                                serde_json::to_string(&response).unwrap();
                                             let _ = socket.write_all(response.as_bytes()).await;
                                         } else {
                                             let response = NetworkResponse {
                                                 status: String::from("Success"),
                                                 data: None,
                                             };
-                                            let response = serde_json::to_string(&response).unwrap();
+                                            let response =
+                                                serde_json::to_string(&response).unwrap();
                                             let _ = socket.write_all(response.as_bytes()).await;
-                                            let unit: Unit = systemctl::Unit::from_systemctl("git_monitor").unwrap();
+                                            let unit: Unit =
+                                                systemctl::Unit::from_systemctl("git_monitor")
+                                                    .unwrap();
                                             unit.restart().unwrap();
                                         }
                                     }
@@ -103,27 +106,25 @@ pub async fn start_server() -> Result<(), ErrorArrayItem> {
                                 let _ = socket.write_all(response.as_bytes()).await;
                             }
                         }
-                        NetworkRequestType::QUERYGITREPO => {
-                            match query_git_config().await {
-                                Ok(git_statuses) => {
-                                    let response = NetworkResponse {
-                                        status: String::from("Success"),
-                                        data: Some(serde_json::to_string(&git_statuses).unwrap()),
-                                    };
-                                    let response = serde_json::to_string(&response).unwrap();
-                                    let _ = socket.write_all(response.as_bytes()).await;
-                                }
-                                Err(e) => {
-                                    eprintln!("Failed to query Git config: {}", e);
-                                    let response = NetworkResponse {
-                                        status: String::from("Error"),
-                                        data: Some(String::from("Failed to query Git config")),
-                                    };
-                                    let response = serde_json::to_string(&response).unwrap();
-                                    let _ = socket.write_all(response.as_bytes()).await;
-                                }
+                        NetworkRequestType::QUERYGITREPO => match query_git_config().await {
+                            Ok(git_statuses) => {
+                                let response = NetworkResponse {
+                                    status: String::from("Success"),
+                                    data: Some(serde_json::to_string(&git_statuses).unwrap()),
+                                };
+                                let response = serde_json::to_string(&response).unwrap();
+                                let _ = socket.write_all(response.as_bytes()).await;
                             }
-                        }
+                            Err(e) => {
+                                eprintln!("Failed to query Git config: {}", e);
+                                let response = NetworkResponse {
+                                    status: String::from("Error"),
+                                    data: Some(String::from("Failed to query Git config")),
+                                };
+                                let response = serde_json::to_string(&response).unwrap();
+                                let _ = socket.write_all(response.as_bytes()).await;
+                            }
+                        },
                         NetworkRequestType::QUERYSYSTEM => {
                             let data = get_system_stats();
                             let response = NetworkResponse {
@@ -132,8 +133,7 @@ pub async fn start_server() -> Result<(), ErrorArrayItem> {
                             };
                             let response = serde_json::to_string(&response).unwrap();
                             let _ = socket.write_all(response.as_bytes()).await;
-
-                        },
+                        }
                         _ => {
                             let response = NetworkResponse {
                                 status: String::from("Error"),

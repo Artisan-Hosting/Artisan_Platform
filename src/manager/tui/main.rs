@@ -10,7 +10,10 @@ use std::{
 mod ui;
 
 use ais_common::{
-    common::{AppName, AppStatus, Status}, constants::SERVERPORT, git_data::{GitAuth, GitCredentials}, manager::{NetworkRequest, NetworkRequestType, NetworkResponse}
+    common::{AppName, AppStatus, Status},
+    constants::SERVERPORT,
+    git_data::{GitAuth, GitCredentials},
+    manager::{NetworkRequest, NetworkRequestType, NetworkResponse},
 };
 use crossterm::event::{self, Event, KeyCode};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
@@ -18,7 +21,7 @@ use tui::{
     backend::CrosstermBackend,
     layout::Alignment,
     style::{Color, Style},
-    widgets:: Paragraph,
+    widgets::Paragraph,
     Terminal,
 };
 use ui::draw_ui;
@@ -121,7 +124,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     *redraw_ui.lock().unwrap() = false;
                     handle_git_repo_update(&ip_address, &messages, &git_data, terminal.clone());
                     *redraw_ui.lock().unwrap() = true;
-                },
+                }
                 _ => {}
             }
         }
@@ -181,21 +184,25 @@ fn spawn_data_update_threads(
 
         let redraw = *redraw_ui_clone.lock().unwrap();
         if redraw {
-            terminal_clone.lock().unwrap().draw(|f| {
-                draw_ui(
-                    f,
-                    &messages_clone,
-                    &flash_state_clone,
-                    &aggregator_data_clone,
-                    &git_data_clone,
-                    &aggregator_status_clone,
-                    &cpu_usage_clone,
-                    &ram_usage_clone,
-                    &system_stats_clone,
-                    &cpu_history_clone,
-                    &ram_history_clone,
-                )
-            }).unwrap();
+            terminal_clone
+                .lock()
+                .unwrap()
+                .draw(|f| {
+                    draw_ui(
+                        f,
+                        &messages_clone,
+                        &flash_state_clone,
+                        &aggregator_data_clone,
+                        &git_data_clone,
+                        &aggregator_status_clone,
+                        &cpu_usage_clone,
+                        &ram_usage_clone,
+                        &system_stats_clone,
+                        &cpu_history_clone,
+                        &ram_history_clone,
+                    )
+                })
+                .unwrap();
         }
         thread::sleep(Duration::from_secs(5)); // Update every 5 seconds
     });
@@ -224,46 +231,60 @@ fn spawn_flash_state_thread(
         // Redraw UI after updating flash state
         let redraw = *redraw_ui.lock().unwrap();
         if redraw {
-            terminal.lock().unwrap().draw(|f| {
-                draw_ui(
-                    f,
-                    &messages,
-                    &flash_state,
-                    &aggregator_data,
-                    &git_data,
-                    &aggregator_status,
-                    &cpu_usage,
-                    &ram_usage,
-                    &system_stats,
-                    &cpu_history,
-                    &ram_history,
-                )
-            }).unwrap();
+            terminal
+                .lock()
+                .unwrap()
+                .draw(|f| {
+                    draw_ui(
+                        f,
+                        &messages,
+                        &flash_state,
+                        &aggregator_data,
+                        &git_data,
+                        &aggregator_status,
+                        &cpu_usage,
+                        &ram_usage,
+                        &system_stats,
+                        &cpu_history,
+                        &ram_history,
+                    )
+                })
+                .unwrap();
         }
         thread::sleep(Duration::from_millis(500));
     });
 }
 
-fn handle_aggregator_query(ip_address: &str, messages: &Arc<Mutex<HashMap<String, (String, Color)>>>) {
+fn handle_aggregator_query(
+    ip_address: &str,
+    messages: &Arc<Mutex<HashMap<String, (String, Color)>>>,
+) {
     let request = NetworkRequest {
         request_type: NetworkRequestType::QUERYSTATUS,
         data: None,
     };
     if let Ok(response) = send_request(ip_address, &request) {
         if let Some(response_data) = response.data {
-            let app_statuses: HashMap<AppName, Status> = serde_json::from_str(&response_data).unwrap();
+            let app_statuses: HashMap<AppName, Status> =
+                serde_json::from_str(&response_data).unwrap();
             let mut messages_lock = messages.lock().unwrap();
 
             for (app_name, status) in app_statuses {
                 match status.app_status {
                     AppStatus::Warning => {
-                        messages_lock.insert(format!("{:?}", app_name), (format!("Warning: {:?}", app_name), Color::Yellow));
+                        messages_lock.insert(
+                            format!("{:?}", app_name),
+                            (format!("Warning: {:?}", app_name), Color::Yellow),
+                        );
                     }
                     AppStatus::Running => {
                         messages_lock.remove(&format!("{:?}", app_name));
                     }
                     AppStatus::TimedOut => {
-                        messages_lock.insert(format!("{:?}", app_name), (format!("Timed Out: {:?}", app_name), Color::Gray));
+                        messages_lock.insert(
+                            format!("{:?}", app_name),
+                            (format!("Timed Out: {:?}", app_name), Color::Gray),
+                        );
                     }
                     _ => {}
                 }
@@ -272,7 +293,10 @@ fn handle_aggregator_query(ip_address: &str, messages: &Arc<Mutex<HashMap<String
     }
 }
 
-fn handle_git_repo_query(ip_address: &str, messages: &Arc<Mutex<HashMap<String, (String, Color)>>>) {
+fn handle_git_repo_query(
+    ip_address: &str,
+    messages: &Arc<Mutex<HashMap<String, (String, Color)>>>,
+) {
     let request = NetworkRequest {
         request_type: NetworkRequestType::QUERYGITREPO,
         data: None,
@@ -355,7 +379,10 @@ fn handle_git_repo_update(
             let mut messages_lock = messages.lock().unwrap();
             messages_lock.insert(
                 "GitUpdate".to_string(),
-                ("Git repository updated successfully".to_string(), Color::Green),
+                (
+                    "Git repository updated successfully".to_string(),
+                    Color::Green,
+                ),
             );
         } else {
             let mut messages_lock = messages.lock().unwrap();
@@ -395,7 +422,14 @@ fn update_data(
     // Update git data
     update_git_data(ip_address, git_data);
     // Update CPU and RAM usage
-    update_system_data(ip_address, cpu_usage, ram_usage, system_stats, cpu_history, ram_history);
+    update_system_data(
+        ip_address,
+        cpu_usage,
+        ram_usage,
+        system_stats,
+        cpu_history,
+        ram_history,
+    );
 }
 
 fn update_aggregator_status(
@@ -427,27 +461,36 @@ fn update_aggregator_status(
                         })
                         .collect::<Vec<_>>()
                         .join("\n");
-                    
+
                     let mut aggregator_data_lock = aggregator_data.lock().unwrap();
                     *aggregator_data_lock = aggregator_str;
-    
+
                     let mut status_lock = aggregator_status.lock().unwrap();
                     *status_lock = "OK".to_string();
-    
+
                     let mut messages_lock = messages.lock().unwrap();
                     for (app_name, status) in app_statuses {
                         match status.app_status {
                             AppStatus::Warning => {
-                                messages_lock.insert(format!("{:?}", app_name), (format!("Warning: {:?}", app_name), Color::Yellow));
+                                messages_lock.insert(
+                                    format!("{:?}", app_name),
+                                    (format!("Warning: {:?}", app_name), Color::Yellow),
+                                );
                             }
                             AppStatus::Running => {
                                 messages_lock.remove(&format!("{:?}", app_name));
                             }
                             AppStatus::TimedOut => {
-                                messages_lock.insert(format!("{:?}", app_name), (format!("Timed Out: {:?}", app_name), Color::Gray));
+                                messages_lock.insert(
+                                    format!("{:?}", app_name),
+                                    (format!("Timed Out: {:?}", app_name), Color::Gray),
+                                );
                             }
                             AppStatus::Stopped => {
-                                messages_lock.insert(format!("{:?}", app_name), (format!("Not Running: {:?}", app_name), Color::White));
+                                messages_lock.insert(
+                                    format!("{:?}", app_name),
+                                    (format!("Not Running: {:?}", app_name), Color::White),
+                                );
                             }
                         }
                     }
@@ -464,7 +507,7 @@ fn update_aggregator_status(
     } else {
         let mut status_lock = aggregator_status.lock().unwrap();
         *status_lock = "UNAVAILABLE".to_string();
-    }    
+    }
 }
 
 fn update_git_data(ip_address: &str, git_data: &Arc<Mutex<String>>) {
@@ -474,7 +517,8 @@ fn update_git_data(ip_address: &str, git_data: &Arc<Mutex<String>>) {
     };
     if let Ok(response) = send_request(ip_address, &request) {
         if let Some(git_data_response) = response.data {
-            let git_auths: HashMap<String, GitAuth> = serde_json::from_str(&git_data_response).unwrap();
+            let git_auths: HashMap<String, GitAuth> =
+                serde_json::from_str(&git_data_response).unwrap();
             let git_str = git_auths
                 .into_iter()
                 .map(|(_, auth)| {
@@ -505,7 +549,8 @@ fn update_system_data(
     };
     if let Ok(response) = send_request(ip_address, &request) {
         if let Some(system_data_response) = response.data {
-            let system_data: HashMap<String, String> = serde_json::from_str(&system_data_response).unwrap();
+            let system_data: HashMap<String, String> =
+                serde_json::from_str(&system_data_response).unwrap();
             let mut system_stats_lock = system_stats.lock().unwrap();
             for (key, value) in system_data {
                 let formatted_value = if key.contains("CPU") {
@@ -544,7 +589,6 @@ fn update_system_data(
         }
     }
 }
-
 
 fn send_request(ip_address: &str, request: &NetworkRequest) -> io::Result<NetworkResponse> {
     let server_address = format!("{}:{}", ip_address, SERVERPORT);

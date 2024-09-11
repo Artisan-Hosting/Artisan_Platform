@@ -1,7 +1,6 @@
 // main.rs
 use ais_common::common::{
-    AppName, GeneralMessage, MessageType,
-    QueryMessage, QueryResponse, QueryType, Status,
+    AppName, GeneralMessage, MessageType, QueryMessage, QueryResponse, QueryType, Status,
 };
 use ais_common::constants::ARTISANCF;
 use ais_common::git_data::{GitAuth, GitCredentials};
@@ -10,13 +9,12 @@ use ais_common::messages::{receive_message, send_message};
 use ais_common::socket::get_socket_path;
 use ais_common::system::{get_machine_id, get_system_stats};
 use ais_common::version::Version;
-use dusa_collection_utils::errors::{ErrorArray, ErrorArrayItem,  WarningArray};
+use dusa_collection_utils::errors::{ErrorArray, ErrorArrayItem, WarningArray};
 use network::start_server;
 use simple_pretty::warn;
-use systemctl::Unit;
 use std::collections::HashMap;
+use systemctl::Unit;
 use tokio::net::UnixStream;
-
 
 mod network;
 
@@ -39,16 +37,22 @@ async fn main() -> Result<(), ErrorArrayItem> {
                 Ok(d) => println!("Fixed: Aggregator was in an unexpected state {}", d),
                 Err(e) => {
                     warn("Aggregator is unresponsive, Calling for backup");
-                    let email = Email { subject: format!("{}", machine_id), body: format!("The aggregator on system: {}. Is not running 
-                    or unreachable and systemd was unable the rectify the issue: {}", machine_id, e) };
+                    let email = Email {
+                        subject: format!("{}", machine_id),
+                        body: format!(
+                            "The aggregator on system: {}. Is not running 
+                    or unreachable and systemd was unable the rectify the issue: {}",
+                            machine_id, e
+                        ),
+                    };
                     let _ = EmailSecure::new(email)
                         .inspect_err(|err| ErrorArray::new(vec![err.clone()]).display(false))
                         .inspect(|mail| mail.send().unwrap());
-                },
+                }
             }
-        },
+        }
     };
-    
+
     start_server().await.unwrap();
     Ok(())
 }
@@ -56,7 +60,8 @@ async fn main() -> Result<(), ErrorArrayItem> {
 async fn query_aggregator() -> Result<HashMap<AppName, Status>, ErrorArrayItem> {
     let throw_away_array_warning = WarningArray::new_container();
     let throw_away_array_error = ErrorArray::new_container();
-    let socket_path_result = get_socket_path(false, throw_away_array_error, throw_away_array_warning).uf_unwrap();
+    let socket_path_result =
+        get_socket_path(false, throw_away_array_error, throw_away_array_warning).uf_unwrap();
     let socket_path = match socket_path_result {
         Ok(d) => d.strip(),
         Err(mut e) => return Err(e.pop()),
@@ -92,15 +97,16 @@ async fn query_aggregator() -> Result<HashMap<AppName, Status>, ErrorArrayItem> 
             ))
         }
     } else {
-        println!("Non standard message received: {:?}", response_message.msg_type);
+        println!(
+            "Non standard message received: {:?}",
+            response_message.msg_type
+        );
         Err(ErrorArrayItem::new(
             dusa_collection_utils::errors::Errors::GeneralError,
             String::from("Unexpected message"),
         ))
     }
 }
-
-
 
 // TODO Implement a fall back function that will use systemd and logs.
 // TODO to determine the status of the system if the aggregator fails
