@@ -74,16 +74,6 @@ impl GitAction {
             };
 
             match self {
-                // GitAction::Clone {
-                //     destination,
-                //     repo_name,
-                //     repo_owner,
-                // } => {
-                //     let url = format!("https://github.com/{}/{}.git", repo_owner, repo_name);
-                //     execute_git_command(&["clone", &url, &destination.to_string()])
-                //         .await
-                //         .map(|o| Some(o))
-                // }
                 GitAction::Clone {
                     destination,
                     repo_name,
