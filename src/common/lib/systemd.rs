@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use dusa_collection_utils::errors::ErrorArrayItem;
+use dusa_collection_utils::errors::{ErrorArrayItem, Errors};
 use std::{
     fmt, io,
     process::{Command, ExitStatus},
@@ -164,6 +164,26 @@ pub fn enable_now(service_name: String) -> io::Result<ExitStatus> {
         .status()?;
 
     Ok(status)
+}
+
+pub fn is_service(service_name: String) -> Result<bool, ErrorArrayItem> {
+    systemctl::exists(&service_name).map_err(|err| ErrorArrayItem::new(Errors::GeneralError, err.to_string()))
+}
+
+pub fn restart_service(service_name: String) -> io::Result<ExitStatus> {
+    systemctl::restart(&service_name)
+}
+
+pub fn restart_if_exists(service_name: String) -> Result<bool, ErrorArrayItem> {
+    match is_service(service_name.clone()) {
+        Ok(d) => match d {
+            true => restart_service(service_name)
+                .map(|res| if res.success() { true } else {false})
+                .map_err(|err| ErrorArrayItem::new(Errors::GeneralError, err.to_string())),
+            false => return Ok(false),
+        },
+        Err(e) => return Err(e),
+    }
 }
 
 // Displays

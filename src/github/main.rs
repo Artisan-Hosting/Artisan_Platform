@@ -3,6 +3,7 @@ use ais_common::git::GitAction;
 use ais_common::git_data::GitCredentials;
 use ais_common::messages::report_status;
 use ais_common::setcap::{get_id, set_file_ownership, SystemUsers};
+use ais_common::systemd::restart_if_exists;
 use ais_common::version::Version;
 use dusa_collection_utils::errors::{ErrorArray, ErrorArrayItem};
 use dusa_collection_utils::functions::{create_hash, truncate};
@@ -111,8 +112,16 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
 
             match pull_update.execute().await {
                 Ok(_) => {
+                    restart_if_exists(
+                        truncate(
+                            &create_hash(format!("{}-{}-{}", ac.branch, ac.repo, ac.user)),
+                            8,
+                        )
+                        .to_owned(),
+                    )?;
                     git_set_tracking.execute().await?;
                     git_switch.execute().await?;
+                    // Restart the service if needed
                 }
                 Err(e) => {
                     // Handle "safe directory" error
