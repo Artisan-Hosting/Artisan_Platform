@@ -14,7 +14,7 @@ DIRECTORY_TO_WATCH="{}"
 SERVICE_NAME="{}"
 
 # Monitor the directory recursively for modifications, creations, or deletions
-inotifywait -m -r -e modify,create,delete "$DIRECTORY_TO_WATCH" | while read -r directory events filename; do
+inotifywait -m -r -e modify,create,delete "$DIRECTORY_TO_WATCH" | grep -vE '\.git/' | while read -r directory events filename; do
   echo "Detected changes in $directory$filename"
   systemctl restart $SERVICE_NAME.service
 done
