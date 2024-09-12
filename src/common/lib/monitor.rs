@@ -37,8 +37,8 @@ Description=Recursive File Monitor for My Project
 [Service]
 ExecStart={}
 Restart=always
-User=www-data
-Group=www-data
+User=root
+Group=root
 
 [Install]
 WantedBy=multi-user.target
