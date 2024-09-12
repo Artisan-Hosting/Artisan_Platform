@@ -38,30 +38,6 @@ WantedBy=multi-user.target
     Ok(service_file_content)
 }
 
-
-/// Function to create a systemd path unit for monitoring a directory
-pub fn create_node_systemd_path(
-    working_dir: &PathType,
-    description: &str,
-    _service_name: &str,
-) -> Result<String, ErrorArrayItem> {
-    // Create the systemd path file content
-    let path_file_content = format!(
-        r#"[Unit]
-Description=Monitor {} for changes
-
-[Path]
-PathModified={}
-
-[Install]
-WantedBy=multi-user.target
-"#,
-        description, working_dir
-    );
-
-    Ok(path_file_content)
-}
-
 pub fn run_npm_install(working_dir: &PathType) -> io::Result<ExitStatus> {
     // Use `Command` to run `npm install` in the specified directory
     let status = Command::new("npm")

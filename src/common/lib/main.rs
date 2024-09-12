@@ -17,3 +17,4 @@ pub mod socket;
 pub mod system;
 pub mod systemd;
 pub mod version;
+pub mod monitor;

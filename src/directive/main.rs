@@ -8,7 +8,8 @@ use ais_common::{
     common::{current_timestamp, AppName, AppStatus, Status},
     directive::{parse_directive, scan_directories},
     messages::report_status,
-    node::{create_node_systemd_path, create_node_systemd_service, run_npm_install},
+    monitor::{create_monitoring_script, create_monitoring_service, MONITOR_DIR},
+    node::{create_node_systemd_service, run_npm_install},
     systemd::{enable_now, reload_systemd_daemon},
     version::Version,
 };
@@ -164,49 +165,35 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
         // Create the systemd service file content
         let service_file_data =
             create_node_systemd_service(&exec_start, &directive_parent, description)?;
-        
+
         // Write the service file
         let service_id: String = directive_parent.to_string().replace("/var/www/ais/", "");
-        
+
         let service_path: PathType =
             PathType::Content(format!("/etc/systemd/system/{}.service", service_id));
-        
+
         if service_path.exists() {
             fs::remove_file(service_path.clone())?;
         }
-        
+
         let mut service_file = File::create(service_path.clone())?;
         service_file
             .write(service_file_data.as_bytes())
             .map_err(|err| ErrorArrayItem::from(err))?;
-        
-        // Create the systemd path unit content
-        let path_file_data = create_node_systemd_path(
-            &directive_parent, // Directory to monitor
-            description, // Same description as service
-            &format!("{}.service", service_id), // Service name
+
+        // Setting up monitoring
+        create_monitoring_script(&directive_parent.to_string(), &service_id)?;
+        create_monitoring_service(
+            &service_id,
+            &format!("{}{}.monitor", MONITOR_DIR, &service_id),
         )?;
-        
-        // Write the path file
-        let path_unit_path: PathType =
-            PathType::Content(format!("/etc/systemd/system/{}.path", service_id));
-        
-        if path_unit_path.exists() {
-            fs::remove_file(path_unit_path.clone())?;
-        }
-        
-        let mut path_file = File::create(path_unit_path.clone())?;
-        path_file
-            .write(path_file_data.as_bytes())
-            .map_err(|err| ErrorArrayItem::from(err))?;
-        
+
         // Reload systemd daemon
         reload_systemd_daemon()?;
-        
+
         // Enable and start the service and the path unit
         enable_now(format!("{}", service_id))?;
-        enable_now(format!("{}.path", service_id))?;
-        
+        enable_now(format!("{}_monitor", service_id))?;
     }
 
     // report to the aggregator
