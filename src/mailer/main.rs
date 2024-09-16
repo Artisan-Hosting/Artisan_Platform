@@ -41,11 +41,11 @@ fn send_email(subject: String, body: String) -> Result<(), ErrorArrayItem> {
                 .map_err(|e: AddressError| {
                     ErrorArrayItem::new(Errors::GeneralError, format!("mailer: {}", e.to_string()))
                 })?)
-            .to("Darrion Whitfield <dwhitfield@artisanhosting.net>"
-                .parse()
-                .map_err(|e: AddressError| {
-                    ErrorArrayItem::new(Errors::GeneralError, format!("mailer: {}", e.to_string()))
-                })?)
+            // .to("Darrion Whitfield <dwhitfield@artisanhosting.net>"
+            //     .parse()
+            //     .map_err(|e: AddressError| {
+            //         ErrorArrayItem::new(Errors::GeneralError, format!("mailer: {}", e.to_string()))
+            //     })?)
             .from("ArtisanBot <ais_bot@artisanhosting.net>".parse().map_err(
                 |e: AddressError| {
                     ErrorArrayItem::new(Errors::GeneralError, format!("mailer: {}", e.to_string()))
@@ -113,7 +113,7 @@ fn process_emails(emails: Arc<RwLock<Vec<TimedEmail>>>, errors: Arc<RwLock<Vec<E
         // Iterate over emails in the vector
         let mut i = 0;
         let mut iteration_count = 0;
-        let rate_limit = 7; // Set your desired rate limit here
+        let rate_limit = 5;
 
         while i < email_vec.len() && iteration_count < rate_limit {
             if current_time.duration_since(email_vec[i].received_at) > Duration::from_secs(300) {
