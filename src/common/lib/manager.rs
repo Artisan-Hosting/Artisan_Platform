@@ -1,5 +1,6 @@
 use std::fmt;
 
+use dusa_collection_utils::stringy::Stringy;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -19,7 +20,7 @@ pub enum NetworkRequestType {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NetworkResponse {
     pub status: String,
-    pub data: Option<String>,
+    pub data: Option<Stringy>,
 }
 
 impl fmt::Display for NetworkResponse {
@@ -34,10 +35,3 @@ impl fmt::Display for NetworkResponse {
         Ok(())
     }
 }
-
-// let response_data = response.data.unwrap();
-// let warning_applications: Vec<_> = response_data
-//     .lines()
-//     .filter(|line| line.contains("Warning"))
-//     .collect();
-//

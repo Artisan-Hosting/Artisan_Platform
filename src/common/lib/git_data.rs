@@ -19,7 +19,7 @@ pub struct GitAuth {
     pub user: String,
     pub repo: String,
     pub branch: String,
-    pub token: String,
+    pub token: String, // TODO REMOVE LATER
 }
 
 // TODO ensure we are creating an Array of GitAuth items to parse in loops
