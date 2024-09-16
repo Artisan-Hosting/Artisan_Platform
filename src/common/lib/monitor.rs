@@ -12,11 +12,25 @@ pub fn create_monitoring_script(directory_to_watch: &str, service_id: &str) -> R
 
 DIRECTORY_TO_WATCH="{}"
 SERVICE_NAME="{}"
+COOLDOWN_PERIOD=30  # Time in seconds to wait before restarting again
 
-# Monitor the directory recursively for modifications, creations, or deletions
 inotifywait -m -r -e modify,create,delete "$DIRECTORY_TO_WATCH" | grep -vE '\.git/' | while read -r directory events filename; do
   echo "Detected changes in $directory$filename"
-  systemctl restart $SERVICE_NAME.service
+
+  # If the restart is already in progress, skip the restart
+  if [[ -z "$RESTART_IN_PROGRESS" ]]; then
+    RESTART_IN_PROGRESS=true
+    echo "Restarting $SERVICE_NAME.service"
+    systemctl restart "$SERVICE_NAME.service"
+    
+    # Sleep for the cooldown period to avoid restarting repeatedly
+    sleep "$COOLDOWN_PERIOD"
+    
+    # Reset the restart flag
+    RESTART_IN_PROGRESS=""
+  else
+    echo "Restart already in progress, skipping..."
+  fi
 done
 "#,
         directory_to_watch, service_id
@@ -32,7 +46,7 @@ done
 pub fn create_monitoring_service(service_id: &str, script_path: &str) -> Result<(), ErrorArrayItem> {
     let service_file_content = format!(
         r#"[Unit]
-Description=Recursive File Monitor for My Project
+Description=Recursive File Monitor for {}
 
 [Service]
 ExecStart={}
@@ -43,6 +57,7 @@ Group=root
 [Install]
 WantedBy=multi-user.target
 "#,
+        service_id,
         script_path
     );
 
