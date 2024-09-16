@@ -42,7 +42,7 @@ async fn main() {
     tokio::spawn(async move {
         loop {
             check_for_timeouts(state_clone.clone()).await;
-            time::sleep(Duration::from_secs(15)).await; // Check every 15 seconds
+            time::sleep(Duration::from_secs(30)).await; // * 15 is too low
         }
     });
 
@@ -242,7 +242,7 @@ pub async fn check_for_timeouts(state: LockWithTimeout<HashMap<AppName, Status>>
     {
         let current_time = current_timestamp();
         for (app_name, status) in state_lock.iter_mut() {
-            if current_time - status.timestamp > 60 {
+            if current_time - status.timestamp > 1800 { // 30 mins
                 warn(&format!(
                     "The module: {:?} has entered a timed out state at {}",
                     status.app_name,
@@ -291,8 +291,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_status_update() {
-        let state = LockWithTimeout::new(HashMap::new());
-        let status = Status {
+        let state: LockWithTimeout<HashMap<AppName, Status>> = LockWithTimeout::new(HashMap::new());
+        let status: Status = Status {
             app_name: AppName::Github,
             app_status: AppStatus::Running,
             timestamp: current_timestamp(),
