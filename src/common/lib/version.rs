@@ -1,18 +1,19 @@
 use std::fmt;
 
+use dusa_collection_utils::stringy::Stringy;
 use serde::{Deserialize, Serialize};
 
 /// Current version of the protocol, derived from the package version.
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize, Clone)]
 pub struct Version {
-    pub number: &'static str,
+    pub number: Stringy,
     pub code: AisCode,
 }
 
 /// Enumeration representing different version codes.
-#[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize, Clone)]
 pub enum AisCode {
     /// Production version.
     Production,
@@ -51,15 +52,14 @@ impl Version {
     /// Get the current version of the ais platform as a filled struct
     pub fn get_raw() -> Self {
         Version {
-            number: &VERSION,
+            number: VERSION.into(),
             code: AisCode::ProductionCandidate,
         }
     }
 
     /// Get the current version String
-    pub fn get() -> String {
-        let data = Self::get_raw();
-        data.to_string()
+    pub fn get() -> Stringy {
+        Stringy::new(&Self::get_raw().to_string())
     }
 
     /// Checks if a version number given is compatible with the current version
@@ -88,8 +88,8 @@ impl Version {
         }
     }
 
-    pub fn comp(data: String) -> bool {
-        let version = match Self::from_string(data) {
+    pub fn comp(data: Stringy) -> bool {
+        let version = match Self::from_stringy(data) {
             Some(d) => d,
             None => return false,
         };
@@ -102,7 +102,7 @@ impl Version {
     }
 
     /// Converts a received string into a Version struct
-    pub fn from_string(s: String) -> Option<Self> {
+    fn from_string(s: String) -> Option<Self> {
         // Find the position of the first non-digit character after the version number
         let pos = s.chars().position(|c| !c.is_digit(10) && c != '.');
         if let Some(pos) = pos {
@@ -117,7 +117,7 @@ impl Version {
                 _ => return None,
             };
             // Convert the string to a 'static str
-            let number_static = Box::leak(number.to_string().into_boxed_str());
+            let number_static = Stringy::new(number);
             Some(Version {
                 number: number_static,
                 code,
@@ -125,6 +125,10 @@ impl Version {
         } else {
             None
         }
+    }
+
+    pub fn from_stringy(s: Stringy) -> Option<Self> {
+        Self::from_string(s.to_string())
     }
 
     fn parse_version(v: &str) -> Option<(u32, u32)> {

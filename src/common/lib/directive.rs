@@ -1,5 +1,6 @@
 use dusa_collection_utils::errors::ErrorArrayItem;
 use dusa_collection_utils::functions::open_file;
+use dusa_collection_utils::stringy::Stringy;
 use dusa_collection_utils::types::PathType;
 use serde::{Deserialize, Serialize};
 use std::io;
@@ -41,7 +42,7 @@ pub async fn parse_directive(path: &Path) -> Result<Directive, ErrorArrayItem> {
 }
 
 /// Reads a JSON file and removes lines starting with `#`
-fn read_json_without_comments(file_path: PathType) -> Result<String, ErrorArrayItem> {
+fn read_json_without_comments(file_path: PathType) -> Result<Stringy, ErrorArrayItem> {
     let file = open_file(file_path, false)?;
     let reader = io::BufReader::new(file);
 
@@ -56,5 +57,5 @@ fn read_json_without_comments(file_path: PathType) -> Result<String, ErrorArrayI
         }
     }
 
-    Ok(json_string)
+    Ok(Stringy::new(&json_string))
 }

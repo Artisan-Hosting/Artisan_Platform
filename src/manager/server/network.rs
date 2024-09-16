@@ -2,6 +2,7 @@ use ais_common::constants::SERVERADDRESS;
 use ais_common::manager::{NetworkRequest, NetworkRequestType, NetworkResponse};
 use ais_common::system::get_system_stats;
 use dusa_collection_utils::errors::ErrorArrayItem;
+use dusa_collection_utils::stringy::Stringy;
 use systemctl::Unit;
 // network.rs
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -29,7 +30,7 @@ pub async fn start_server() -> Result<(), ErrorArrayItem> {
                             eprintln!("Failed to parse request: {}", e);
                             let response = NetworkResponse {
                                 status: String::from("Error"),
-                                data: Some(String::from("Invalid request format")),
+                                data: Some(Stringy::new("Invalid request format")),
                             };
                             let response = serde_json::to_string(&response).unwrap();
                             let _ = socket.write_all(response.as_bytes()).await;
@@ -42,7 +43,7 @@ pub async fn start_server() -> Result<(), ErrorArrayItem> {
                             Ok(statuses) => {
                                 let response = NetworkResponse {
                                     status: String::from("Success"),
-                                    data: Some(serde_json::to_string(&statuses).unwrap()),
+                                    data: Some(Stringy::new(&serde_json::to_string(&statuses).unwrap())),
                                 };
                                 let response = serde_json::to_string(&response).unwrap();
                                 let _ = socket.write_all(response.as_bytes()).await;
@@ -51,7 +52,7 @@ pub async fn start_server() -> Result<(), ErrorArrayItem> {
                                 eprintln!("Failed to query aggregator: {}", e);
                                 let response = NetworkResponse {
                                     status: String::from("Error"),
-                                    data: Some(String::from("Failed to query aggregator")),
+                                    data: Some(Stringy::new("Failed to query aggregator")),
                                 };
                                 let response = serde_json::to_string(&response).unwrap();
                                 let _ = socket.write_all(response.as_bytes()).await;
@@ -65,7 +66,7 @@ pub async fn start_server() -> Result<(), ErrorArrayItem> {
                                             eprintln!("Failed to update Git config: {}", e);
                                             let response = NetworkResponse {
                                                 status: String::from("Error"),
-                                                data: Some(String::from(
+                                                data: Some(Stringy::new(
                                                     "Failed to update Git config",
                                                 )),
                                             };
@@ -91,7 +92,7 @@ pub async fn start_server() -> Result<(), ErrorArrayItem> {
                                         eprintln!("{:?}", data);
                                         let response = NetworkResponse {
                                             status: String::from("Error"),
-                                            data: Some(String::from("Invalid GitAuth data")),
+                                            data: Some(Stringy::new("Invalid GitAuth data")),
                                         };
                                         let response = serde_json::to_string(&response).unwrap();
                                         let _ = socket.write_all(response.as_bytes()).await;
@@ -100,7 +101,7 @@ pub async fn start_server() -> Result<(), ErrorArrayItem> {
                             } else {
                                 let response = NetworkResponse {
                                     status: String::from("Error"),
-                                    data: Some(String::from("No data provided")),
+                                    data: Some(Stringy::new("No data provided")),
                                 };
                                 let response = serde_json::to_string(&response).unwrap();
                                 let _ = socket.write_all(response.as_bytes()).await;
@@ -110,7 +111,7 @@ pub async fn start_server() -> Result<(), ErrorArrayItem> {
                             Ok(git_statuses) => {
                                 let response = NetworkResponse {
                                     status: String::from("Success"),
-                                    data: Some(serde_json::to_string(&git_statuses).unwrap()),
+                                    data: Some(Stringy::new(&serde_json::to_string(&git_statuses).unwrap())),
                                 };
                                 let response = serde_json::to_string(&response).unwrap();
                                 let _ = socket.write_all(response.as_bytes()).await;
@@ -119,7 +120,7 @@ pub async fn start_server() -> Result<(), ErrorArrayItem> {
                                 eprintln!("Failed to query Git config: {}", e);
                                 let response = NetworkResponse {
                                     status: String::from("Error"),
-                                    data: Some(String::from("Failed to query Git config")),
+                                    data: Some(Stringy::new("Failed to query Git config")),
                                 };
                                 let response = serde_json::to_string(&response).unwrap();
                                 let _ = socket.write_all(response.as_bytes()).await;
@@ -129,7 +130,7 @@ pub async fn start_server() -> Result<(), ErrorArrayItem> {
                             let data = get_system_stats();
                             let response = NetworkResponse {
                                 status: String::from("Success"),
-                                data: Some(serde_json::to_string(&data).unwrap()),
+                                data: Some(Stringy::new(&serde_json::to_string(&data).unwrap())),
                             };
                             let response = serde_json::to_string(&response).unwrap();
                             let _ = socket.write_all(response.as_bytes()).await;
@@ -137,7 +138,7 @@ pub async fn start_server() -> Result<(), ErrorArrayItem> {
                         _ => {
                             let response = NetworkResponse {
                                 status: String::from("Error"),
-                                data: Some(String::from("Unknown request type")),
+                                data: Some(Stringy::from("Unknown request type")),
                             };
                             let response = serde_json::to_string(&response).unwrap();
                             let _ = socket.write_all(response.as_bytes()).await;
