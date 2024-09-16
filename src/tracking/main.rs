@@ -1,10 +1,12 @@
-use ais_common::common::{current_timestamp, AppName, AppStatus, Status};
+use ais_common::common::{AppName, AppStatus, Status};
 use ais_common::dusa_wrapper::encrypt_text;
 use ais_common::messages::report_status;
+use ais_common::system::current_timestamp;
 use ais_common::version::Version;
 use chrono::{DateTime, Local};
 use dusa_collection_utils::errors::{ErrorArray, WarningArray};
 use dusa_collection_utils::functions::del_file;
+use dusa_collection_utils::stringy::Stringy;
 use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::{self, BufRead, BufReader, Write};
@@ -303,7 +305,7 @@ async fn store_summary(summaries: HashMap<String, SessionSummary>) -> io::Result
     all_summary_data.push_str("--------------------------------\n");
 
     // Encrypt and write the summary data to the final file
-    let encrypted_data = encrypt_text(all_summary_data).unwrap();
+    let encrypted_data = encrypt_text(Stringy::new(&all_summary_data)).unwrap();
     let mut file = OpenOptions::new()
         .create(true)
         .append(true)

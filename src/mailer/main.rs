@@ -2,6 +2,7 @@ use ais_common::dusa_wrapper::decrypt_text;
 use ais_common::mailing::Email;
 use dusa_collection_utils::errors::{ErrorArray, ErrorArrayItem, Errors};
 use dusa_collection_utils::functions::{create_hash, truncate};
+use dusa_collection_utils::stringy::Stringy;
 use lettre::address::AddressError;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
@@ -32,7 +33,7 @@ struct ErrorEmail {
 }
 
 #[allow(dead_code)]
-fn send_email(subject: String, body: String) -> Result<(), ErrorArrayItem> {
+fn send_email(subject: Stringy, body: Stringy) -> Result<(), ErrorArrayItem> {
     // Build the email
     let email =
         Message::builder()
@@ -51,8 +52,8 @@ fn send_email(subject: String, body: String) -> Result<(), ErrorArrayItem> {
                     ErrorArrayItem::new(Errors::GeneralError, format!("mailer: {}", e.to_string()))
                 },
             )?)
-            .subject(subject)
-            .body(body)
+            .subject(subject.to_string())
+            .body(body.to_string())
             .map_err(|e| {
                 ErrorArrayItem::new(Errors::GeneralError, format!("mailer: {}", e.to_string()))
             })?;
@@ -169,15 +170,15 @@ fn handle_client(
     notice("Emails received");
 
     // Decrypt email data
-    let email_data_plain = decrypt_received_data(&received_data)?;
+    let email_data_plain: Stringy = decrypt_received_data(Stringy::new(&received_data))?;
 
     let email_data: Vec<&str> = email_data_plain.split("-=-").collect();
-    let subject: &str = email_data[0];
-    let body: &str = email_data[1];
+    let subject: Stringy = Stringy::new(email_data[0]);
+    let body: Stringy = Stringy::new(email_data[1]);
 
     let email: Email = Email {
-        subject: subject.to_owned(),
-        body: body.to_owned(),
+        subject,
+        body,
     };
 
     // Add email to the vector with current timestamp
@@ -199,8 +200,8 @@ fn handle_client(
     Ok(())
 }
 
-fn decrypt_received_data(data: &str) -> Result<String, ErrorArrayItem> {
-    decrypt_text(data.to_owned())
+fn decrypt_received_data(data: Stringy) -> Result<Stringy, ErrorArrayItem> {
+    decrypt_text(data)
 }
 
 fn start_server(host: &str, port: u16, emails: Arc<RwLock<Vec<TimedEmail>>>) -> io::Result<()> {

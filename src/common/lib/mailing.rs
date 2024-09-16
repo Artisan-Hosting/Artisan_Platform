@@ -55,7 +55,7 @@ impl EmailSecure {
         }
 
         let plain_email_data: Stringy = Stringy::from_string(format!("{}-=-{}", email.subject, email.body));
-        let encrypted_data: Stringy = encrypt_text(plain_email_data.to_string()).map(|d| Stringy::from_string(d))?;
+        let encrypted_data: Stringy = encrypt_text(plain_email_data)?;
 
         Ok(EmailSecure {
             data: encrypted_data,

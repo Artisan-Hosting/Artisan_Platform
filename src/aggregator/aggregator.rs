@@ -1,15 +1,16 @@
 use ais_common::common::{
-    current_timestamp, AppName, AppStatus, GeneralMessage, MessageType, QueryMessage,
+    AppName, AppStatus, GeneralMessage, MessageType, QueryMessage,
     QueryResponse, QueryType, Status,
 };
 use ais_common::log::{log, Names};
 use ais_common::mailing::{Email, EmailSecure};
 use ais_common::messages::{receive_message, send_acknowledge, send_message};
 use ais_common::socket::get_socket_path;
-use ais_common::system::get_machine_id;
+use ais_common::system::{current_timestamp, get_machine_id};
 use ais_common::version::Version;
 use dusa_collection_utils::errors::{ErrorArray, ErrorArrayItem, UnifiedResult, WarningArray};
 use dusa_collection_utils::rwarc::LockWithTimeout;
+use dusa_collection_utils::stringy::Stringy;
 use dusa_collection_utils::types::PathType;
 use simple_pretty::warn;
 use std::collections::HashMap;
@@ -97,8 +98,8 @@ pub async fn handle_message(
                     }
                 }
                 MessageType::Acknowledgment => {
-                    let email: Email = Email { subject: format!("Connection dropped Erroneous communication"), 
-                body: format!("Machine: {} has dropped a connection due to non standard communication", get_machine_id()) };
+                    let email: Email = Email { subject: format!("Connection dropped Erroneous communication").into(), 
+                body: format!("Machine: {} has dropped a connection due to non standard communication", get_machine_id()).into() };
                     if let Err(err) = EmailSecure::new(email) {
                         ErrorArray::new(vec![err]).display(false);
                     };
@@ -255,12 +256,12 @@ pub async fn check_for_timeouts(state: LockWithTimeout<HashMap<AppName, Status>>
                     version: status.version.clone(),
                 };
                 let email = Email {
-                    subject: format!("Application timed out"),
+                    subject: format!("Application timed out").into(),
                     body: format!(
                         "The application {:?} on host {} has timed out",
                         app_name,
                         get_machine_id()
-                    ),
+                    ).into(),
                 };
                 let result = match EmailSecure::new(email) {
                     Ok(d) => d.send(),
@@ -275,8 +276,8 @@ pub async fn check_for_timeouts(state: LockWithTimeout<HashMap<AppName, Status>>
 }
 
 fn notify_status(name: &AppName, status: &AppStatus) -> Result<(), ErrorArrayItem> {
-    let subject: String = format!("Machine update: {}", get_machine_id());
-    let body: String = format!("The application: {:?} has change to {:?}", name, status);
+    let subject: Stringy = format!("Machine update: {}", get_machine_id()).into();
+    let body: Stringy = format!("The application: {:?} has change to {:?}", name, status).into();
     let email: Email = Email { subject, body };
     let secure_email: EmailSecure = EmailSecure::new(email)?;
     secure_email.send()?;
@@ -285,7 +286,7 @@ fn notify_status(name: &AppName, status: &AppStatus) -> Result<(), ErrorArrayIte
 
 #[cfg(test)]
 mod tests {
-    use ais_common::common::{current_timestamp, AppName, AppStatus, Status};
+    use ais_common::common::{AppName, AppStatus, Status};
 
     use super::*;
 

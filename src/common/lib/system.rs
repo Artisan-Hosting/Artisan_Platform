@@ -1,6 +1,6 @@
 use dusa_collection_utils::{errors::{ErrorArray, ErrorArrayItem}, stringy::Stringy};
 use gethostname::gethostname;
-use std::{collections::HashMap, fs, path::Path, time::{Duration, SystemTime, UNIX_EPOCH}};
+use std::{collections::HashMap, fs, io::{self, Write}, path::Path, time::{Duration, SystemTime, UNIX_EPOCH}};
 use sysinfo::System;
 use uuid::Uuid;
 
@@ -94,4 +94,13 @@ pub fn format_unix_timestamp(timestamp: u64) -> Stringy {
     };
 
     return Stringy::from_string(data)
+}
+
+pub fn prompt_input(prompt: &str) -> Stringy {
+    print!("{}", prompt);
+    io::stdout().flush().unwrap();
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    Stringy::new(input.trim())
 }
