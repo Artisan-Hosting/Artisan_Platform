@@ -1,5 +1,6 @@
-use ais_common::common::{current_timestamp, AppName, AppStatus, Status};
+use ais_common::common::{AppName, AppStatus, Status};
 use ais_common::messages::report_status;
+use ais_common::system::current_timestamp;
 use ais_common::systemd::{self, ProcessInfo, Services};
 use ais_common::version::Version;
 use rand::seq::SliceRandom;

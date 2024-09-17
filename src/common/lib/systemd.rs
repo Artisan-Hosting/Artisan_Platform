@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use dusa_collection_utils::errors::{ErrorArrayItem, Errors};
+use dusa_collection_utils::{errors::{ErrorArrayItem, Errors}, stringy::Stringy};
 use std::{
     fmt, io,
     process::{Command, ExitStatus},
@@ -30,7 +30,7 @@ pub enum Status {
 /// Enum representing memory information.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Memory {
-    MemoryConsumed(String),
+    MemoryConsumed(Stringy),
 }
 
 /// Enum representing subprocesses information.
@@ -43,12 +43,12 @@ pub enum SubProcesses {
 /// Struct representing information about a process.
 #[derive(Debug, Clone)]
 pub struct ProcessInfo {
-    pub service: String,
+    pub service: Stringy,
     pub refered: Services,
     pub status: Status,
     pub memory: Memory,
     pub children: SubProcesses,
-    pub timestamp: String,
+    pub timestamp: Stringy,
     pub optional: bool,
 }
 
@@ -113,7 +113,7 @@ impl Services {
 impl ProcessInfo {
     /// Retrieves information about a specific service.
     pub fn get_info(service: Services) -> Result<Self, ErrorArrayItem> {
-        let unit_name: String = format!("{}", &service);
+        let unit_name: Stringy = Stringy::new(&format!("{}", &service));
         let unit: Unit = match systemctl::Unit::from_systemctl(&unit_name) {
             Ok(d) => d,
             Err(e) => return Err(ErrorArrayItem::from(e)),
@@ -128,8 +128,8 @@ impl ProcessInfo {
 
         let memory_data: Option<String> = unit.memory;
         let memory: Memory = match memory_data {
-            Some(d) => Memory::MemoryConsumed(d),
-            None => Memory::MemoryConsumed(format!("{}B", 0.00.to_string())),
+            Some(d) => Memory::MemoryConsumed(dusa_collection_utils::stringy::Stringy::Mutable(d)),
+            None => Memory::MemoryConsumed(Stringy::new(&format!("{}B", 0.00.to_string()))),
         };
 
         let (tasks, pid) = (unit.tasks, unit.pid);
@@ -233,9 +233,9 @@ impl fmt::Display for SubProcesses {
 }
 
 /// Generates a timestamp string in the format: YYYY-MM-DD HH:MM:SS.
-pub fn timestamp() -> String {
+pub fn timestamp() -> Stringy {
     let now: DateTime<Utc> = Utc::now();
-    now.format("%Y-%m-%d %H:%M:%S").to_string()
+    Stringy::new(now.format("%Y-%m-%d %H:%M:%S").to_string().as_str())
 }
 
 #[cfg(test)]
@@ -265,7 +265,7 @@ mod tests {
     #[test]
     fn test_memory_display() {
         assert_eq!(
-            format!("{}", Memory::MemoryConsumed("2GB".to_string())),
+            format!("{}", Memory::MemoryConsumed(Stringy::new("2GB"))),
             "2GB"
         );
     }
