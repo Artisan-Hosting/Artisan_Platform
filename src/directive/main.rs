@@ -4,7 +4,7 @@
 // We save two hashes to ensure we aren't changing thing when they arent needed. We save a hash before copy. and we save a hash that we modify.
 
 use ais_common::{
-    apache::{create_apache_config, reload_apache}, common::{AppName, AppStatus, Status}, directive::{check_directive, get_directive_id, get_parent_dir, parse_directive, scan_directories}, messages::report_status, monitor::{create_monitoring_script, create_monitoring_service, MONITOR_DIR}, node::{create_node_systemd_service, run_npm_install}, system::current_timestamp, systemd::{enable_now, reload_systemd_daemon}, version::Version
+    apache::{create_apache_config, reload_apache}, common::{AppName, AppStatus, Status}, constants::AIS_PROJECT_FOLDER, directive::{check_directive, get_directive_id, get_parent_dir, parse_directive, scan_directories}, messages::report_status, monitor::{create_monitoring_script, create_monitoring_service, MONITOR_DIR}, node::{create_node_systemd_service, run_npm_install}, system::current_timestamp, systemd::{enable_now, reload_systemd_daemon}, version::Version
 };
 use dusa_collection_utils::{
     errors::{ErrorArray, ErrorArrayItem},
@@ -165,10 +165,9 @@ async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayI
 
 #[tokio::main]
 async fn main() {
-    let base_path = "/var/www/ais";
 
     loop {
-        let directive_paths = match scan_directories(base_path).await {
+        let directive_paths = match scan_directories(AIS_PROJECT_FOLDER).await {
             Ok(d) => d,
             Err(e) => {
                 // Set the application status to warning in the aggregator as it's running with faults
