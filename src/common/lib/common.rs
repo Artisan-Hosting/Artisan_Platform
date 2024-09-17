@@ -1,6 +1,4 @@
-use std::{
-    collections::HashMap,
-};
+use std::collections::HashMap;
 
 use dusa_collection_utils::stringy::Stringy;
 use serde::{Deserialize, Serialize};
