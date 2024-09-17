@@ -4,104 +4,63 @@
 // We save two hashes to ensure we aren't changing thing when they arent needed. We save a hash before copy. and we save a hash that we modify.
 
 use ais_common::{
-    apache::{create_apache_config, reload_apache}, common::{AppName, AppStatus, Status}, directive::{parse_directive, scan_directories}, messages::report_status, monitor::{create_monitoring_script, create_monitoring_service, MONITOR_DIR}, node::{create_node_systemd_service, run_npm_install}, system::current_timestamp, systemd::{enable_now, reload_systemd_daemon}, version::Version
+    apache::{create_apache_config, reload_apache}, common::{AppName, AppStatus, Status}, directive::{check_directive, get_directive_id, get_parent_dir, parse_directive, scan_directories}, messages::report_status, monitor::{create_monitoring_script, create_monitoring_service, MONITOR_DIR}, node::{create_node_systemd_service, run_npm_install}, system::current_timestamp, systemd::{enable_now, reload_systemd_daemon}, version::Version
 };
 use dusa_collection_utils::{
     errors::{ErrorArray, ErrorArrayItem},
-    functions::{create_hash, make_file, open_file, truncate},
     types::{ClonePath, PathType},
 };
 use simple_pretty::{notice, warn};
 use std::{
     fs::{self, File},
-    io::{Read, Write},
-    path::Path,
+    io::Write,
     thread,
     time::Duration,
 };
 
-pub const SYSTEM_DIRECTIVE_PATH: &str = "/tmp";
+// fn store_directive(directive_path: PathType) -> Result<(), ErrorArrayItem> {
+//     if directive_path.exists() {
+//         let new_directive_path = PathType::Content(format!(
+//             "{}/{}",
+//             SYSTEM_DIRECTIVE_PATH,
+//             truncate(&generate_directive_hash(directive_path.clone_path())?, 8)
+//         ));
 
-fn generate_directive_hash(directive_path: PathType) -> Result<String, ErrorArrayItem> {
-    let mut directive_file: std::fs::File = open_file(directive_path.clone(), false)?;
+//         print!("{}", new_directive_path);
 
-    let directive_parent = get_parent_dir(&directive_path);
+//         make_file(new_directive_path.clone_path(), ErrorArray::new_container())
+//             .uf_unwrap()
+//             .unwrap();
 
-    let service_id: String = directive_parent.to_string().replace("/var/www/ais/", "");
+//         let bytes_copied = fs::copy(directive_path, new_directive_path)
+//             .map_err(|err| ErrorArrayItem::from(err))?;
 
-    let mut directive_buffer: Vec<u8> = Vec::new();
+//         // just for sanity
+//         if bytes_copied == 0 {
+//             return Err(ErrorArrayItem::new(
+//                 dusa_collection_utils::errors::Errors::GeneralError,
+//                 String::from(
+//                     "When coping the directive file,the operation reported the size was 0 ",
+//                 ),
+//             ));
+//         }
 
-    directive_file
-        .read_to_end(&mut directive_buffer)
-        .map_err(|err| ErrorArrayItem::from(err))?;
+//         Ok(())
+//     } else {
+//         return Err(ErrorArrayItem::new(
+//             dusa_collection_utils::errors::Errors::GeneralError,
+//             String::from("There was no directive.ais file in the path given"),
+//         ));
+//     }
+// }
 
-    let directive_hash: String =
-        String::from_utf8(directive_buffer).map_err(|err| ErrorArrayItem::from(err))?;
 
-    Ok(create_hash(format!("{}_{}", directive_hash, service_id)))
-}
 
-fn store_directive(directive_path: PathType) -> Result<(), ErrorArrayItem> {
-    if directive_path.exists() {
-        let new_directive_path = PathType::Content(format!(
-            "{}/{}",
-            SYSTEM_DIRECTIVE_PATH,
-            truncate(&generate_directive_hash(directive_path.clone_path())?, 8)
-        ));
-
-        print!("{}", new_directive_path);
-
-        make_file(new_directive_path.clone_path(), ErrorArray::new_container())
-            .uf_unwrap()
-            .unwrap();
-
-        let bytes_copied = fs::copy(directive_path, new_directive_path)
-            .map_err(|err| ErrorArrayItem::from(err))?;
-
-        // just for sanity
-        if bytes_copied == 0 {
-            return Err(ErrorArrayItem::new(
-                dusa_collection_utils::errors::Errors::GeneralError,
-                String::from(
-                    "When coping the directive file,the operation reported the size was 0 ",
-                ),
-            ));
-        }
-
-        Ok(())
-    } else {
-        return Err(ErrorArrayItem::new(
-            dusa_collection_utils::errors::Errors::GeneralError,
-            String::from("There was no directive.ais file in the path given"),
-        ));
-    }
-}
-
-fn get_parent_dir(directive_path: &PathType) -> PathType {
-    PathType::Path(
-        directive_path
-            .clone()
-            .parent()
-            .or_else(|| Some(Path::new("/tmp"))) // this unwrap call should be safe because we can never end up with None for this item
-            .unwrap()
-            .to_owned()
-            .into_boxed_path(),
-    )
-}
-
-fn check_directive(directive_path: PathType) -> Result<bool, ErrorArrayItem> {
-    let new_directive_path = PathType::Content(format!(
-        "{}/{}",
-        SYSTEM_DIRECTIVE_PATH,
-        truncate(&generate_directive_hash(directive_path.clone_path())?, 8)
-    ));
-
-    Ok(new_directive_path.exists())
-}
 
 /// This need the directive in the project folder
 async fn executing_directive(directive_path: PathType) -> Result<(), ErrorArrayItem> {
-    let directive: ais_common::directive::Directive = parse_directive(&directive_path).await?;
+    let directive_id = get_directive_id(directive_path.clone_path());
+    let directive = parse_directive(&directive_id).await?.unwrap();
     let directive_parent = get_parent_dir(&directive_path);
     notice(&format!("Executing directive: {}", directive_parent));
 
@@ -229,6 +188,7 @@ async fn main() {
         for directive_path_string in directive_paths {
             let directive_path: PathType = PathType::PathBuf(directive_path_string);
 
+
             // If we haven't already stored the directive data
             if !check_directive(directive_path.clone())
                 .expect("Error while opening the directive path")
@@ -255,22 +215,22 @@ async fn main() {
                     }
                 }
 
-                if store_directive(directive_path).is_ok() {
-                    return;
-                } else {
-                    print!("we have executed the directive but cannot store that we have. The directive may be in a loop");
-                    // Set the application status to warning in the aggregator as it's running with faults
-                    let status: Status = Status {
-                        app_name: AppName::Directive,
-                        app_status: AppStatus::Warning,
-                        timestamp: current_timestamp(),
-                        version: Version::get(),
-                    };
-                    if let Err(err) = report_status(status).await {
-                        ErrorArray::new(vec![err]).display(false)
-                    }
-                    return;
-                }
+                // if store_directive(directive_path).is_ok() {
+                //     return;
+                // } else {
+                //     print!("we have executed the directive but cannot store that we have. The directive may be in a loop");
+                //     // Set the application status to warning in the aggregator as it's running with faults
+                //     let status: Status = Status {
+                //         app_name: AppName::Directive,
+                //         app_status: AppStatus::Warning,
+                //         timestamp: current_timestamp(),
+                //         version: Version::get(),
+                //     };
+                //     if let Err(err) = report_status(status).await {
+                //         ErrorArray::new(vec![err]).display(false)
+                //     }
+                //     return;
+                // }
             }
         }
 

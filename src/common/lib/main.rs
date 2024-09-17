@@ -13,6 +13,7 @@ pub mod messages;
 pub mod network;
 pub mod node;
 pub mod setcap;
+pub mod structs;
 pub mod socket;
 pub mod system;
 pub mod systemd;

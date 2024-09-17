@@ -158,6 +158,10 @@ path = "src/stress/main.rs"
 name = "mail_test"
 path = "src/mail.rs"
 
+[[bin]]
+name = "test"
+path = "src/test.rs"
+
 # Library targets
 [lib]
 name = "ais_common"

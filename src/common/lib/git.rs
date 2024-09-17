@@ -1,9 +1,11 @@
 use std::{env, future::Future, pin::Pin, process::Output};
 
 use dusa_collection_utils::{
-    errors::{ErrorArrayItem, Errors}, stringy::Stringy, types::{ClonePath, PathType}
+    errors::{ErrorArrayItem, Errors}, functions::{create_hash, truncate}, stringy::Stringy, types::{ClonePath, PathType}
 };
 use tokio::process::Command;
+
+use crate::git_data::GitAuth;
 
 /// Function to check if Git is installed.
 async fn check_git_installed() -> Result<(), ErrorArrayItem> {
@@ -316,6 +318,21 @@ async fn execute_git_hash_command(args: &[&str]) -> Result<String, ErrorArrayIte
             String::from_utf8_lossy(&output.stderr).to_string(),
         ))
     }
+}
+
+// Generate the path for the git project based on branch, repo, and user
+pub fn generate_git_project_path(auth: &GitAuth) -> PathType {
+    PathType::Content(format!(
+        "/var/www/ais/{}",
+        generate_git_project_id(auth)
+    ))
+}
+
+pub fn generate_git_project_id(auth: &GitAuth) -> Stringy {
+    truncate(
+        &create_hash(format!("{}-{}-{}", auth.branch, auth.repo, auth.user)),
+        8
+    ).into()
 }
 
 #[cfg(feature = "git")]
