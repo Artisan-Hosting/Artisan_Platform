@@ -1,8 +1,7 @@
 use std::{env, future::Future, pin::Pin, process::Output};
 
 use dusa_collection_utils::{
-    errors::{ErrorArrayItem, Errors},
-    types::{ClonePath, PathType},
+    errors::{ErrorArrayItem, Errors}, stringy::Stringy, types::{ClonePath, PathType}
 };
 use tokio::process::Command;
 
@@ -29,13 +28,13 @@ async fn check_git_installed() -> Result<(), ErrorArrayItem> {
 #[derive(Debug)]
 pub enum GitAction {
     Clone {
-        repo_name: String,
-        repo_owner: String,
+        repo_name: Stringy,
+        repo_owner: Stringy,
         destination: PathType,
-        repo_branch: String,
+        repo_branch: Stringy,
     },
     Pull {
-        target_branch: String,
+        target_branch: Stringy,
         destination: PathType,
     },
     Push {
@@ -47,11 +46,11 @@ pub enum GitAction {
     },
     Commit {
         directory: PathType,
-        message: String,
+        message: Stringy,
     },
     CheckRemoteAhead(PathType),
     Switch {
-        branch: String,
+        branch: Stringy,
         destination: PathType,
     },
     // git config --global --add safe.directory /var/www/current/path

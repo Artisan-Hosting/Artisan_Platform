@@ -1,15 +1,16 @@
 use std::io::{self, Write};
 
 use ais_common::git_data::{GitAuth, GitCredentials};
+use dusa_collection_utils::stringy::Stringy;
 use simple_pretty::{halt, pass};
 
-fn prompt_input(prompt: &str) -> String {
+fn prompt_input(prompt: &str) -> Stringy {
     print!("{}", prompt);
     io::stdout().flush().unwrap();
 
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
-    input.trim().to_string()
+    input.trim().into()
 }
 
 fn main() {
@@ -22,15 +23,15 @@ fn main() {
     for i in 0..num_instances {
         println!("Enter details for GitAuth instance {}", i + 1);
 
-        let user = prompt_input("User: ");
-        let repo = prompt_input("Repo: ");
-        let branch = prompt_input("Branch: ");
+        let user: Stringy = prompt_input("User: ");
+        let repo: Stringy = prompt_input("Repo: ");
+        let branch: Stringy = prompt_input("Branch: ");
 
         let auth = GitAuth {
             user,
             repo,
             branch,
-            token: "******".to_owned(),
+            token: Stringy::new("******"),
         };
 
         git_creds.add_auth(auth);
