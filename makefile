@@ -2,7 +2,7 @@
 PROJECT_NAME := artisan_platform
 BUILD_DIR := target/release
 BIN_DIR := /opt/artisan_platform/bin
-BINARIES := ais_aggregator ais_gitmon ais_services ais_directive ais_security ais_manager
+BINARIES := ais_aggregator ais_gitmon ais_services ais_directive ais_security ais_manager ais_credentials ais_manager_tui
 #UNIFIED_NAMES := aggregator git_monitor services apache security manager
 
 # Default task check
@@ -30,6 +30,7 @@ copy:
 	cp $(BUILD_DIR)/ais_directive $(BIN_DIR)/ais_directive
 	cp $(BUILD_DIR)/ais_security $(BIN_DIR)/ais_security
 	cp $(BUILD_DIR)/ais_manager $(BIN_DIR)/ais_manager
+	cp $(BUILD_DIR)/ais_manager_tui $(BIN_DIR)/artisan_tui
 	cp $(BUILD_DIR)/ais_credentials $(BIN_DIR)/credentials
 	cp $(BUILD_DIR)/ais_welcome $(BIN_DIR)/welcome
 
