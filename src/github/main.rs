@@ -1,10 +1,11 @@
 use std::pin::Pin;
 
-use ais_common::common::{current_timestamp, AppName, AppStatus, Status};
-use ais_common::git::GitAction;
+use ais_common::common::{AppName, AppStatus, Status};
+use ais_common::git::{generate_git_project_path, GitAction};
 use ais_common::git_data::{GitAuth, GitCredentials};
 use ais_common::messages::report_status;
 use ais_common::setcap::{get_id, set_file_ownership, SystemUsers};
+use ais_common::system::current_timestamp;
 use ais_common::systemd::restart_if_exists;
 use ais_common::version::Version;
 use dusa_collection_utils::errors::{ErrorArray, ErrorArrayItem, Errors};
@@ -90,17 +91,6 @@ async fn git_loop(credentials: GitCredentials) -> Result<(), ErrorArrayItem> {
     }
 
     Ok(())
-}
-
-// Generate the path for the git project based on branch, repo, and user
-fn generate_git_project_path(auth: &GitAuth) -> PathType {
-    PathType::Content(format!(
-        "/var/www/ais/{}",
-        truncate(
-            &create_hash(format!("{}-{}-{}", auth.branch, auth.repo, auth.user)),
-            8
-        )
-    ))
 }
 
 // Handle an existing repo: fetch, pull, set tracking, restart if needed

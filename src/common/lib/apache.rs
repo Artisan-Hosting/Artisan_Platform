@@ -1,7 +1,10 @@
 use crate::constants::{WEBSERVER_CONFIG_DIR, WEBSERVER_PORTS_CONFIG};
-use crate::directive::{parse_directive, scan_directories, Directive};
+use crate::directive::{get_directive_id, parse_directive, scan_directories};
+use crate::structs::Directive;
 use crate::systemd::Services;
 use dusa_collection_utils::errors::ErrorArrayItem;
+use dusa_collection_utils::types::PathType;
+use simple_pretty::notice;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
@@ -94,21 +97,26 @@ pub async fn process_directives(base_path: &str) -> Result<bool, ErrorArrayItem>
     let directive_paths = scan_directories(base_path).await?;
     let mut config_changed = false;
 
+
+
     for directive_path in directive_paths {
-        match parse_directive(&directive_path).await {
-            Ok(directive) => {
-                if create_apache_config(&directive, &directive_path.parent().unwrap())? {
-                    config_changed = true;
-                }
-                if let Err(e) = check_apache_ports(&directive).await {
-                    eprintln!("Failed to check Apache ports configuration: {}", e);
-                }
+        let directive_id = get_directive_id(PathType::PathBuf(directive_path.clone()));
+        
+        match parse_directive(&directive_id.into()).await {
+            Ok(directive) => match directive {
+                Some(directive) => {
+                    if create_apache_config(&directive, &directive_path.parent().unwrap())? {
+                        config_changed = true;
+                    }
+                    if let Err(e) = check_apache_ports(&directive).await {
+                        eprintln!("Failed to check Apache ports configuration: {}", e);
+                    }
+                },
+                None => {
+                    notice("Directive provided was empty");
+                },
             }
-            Err(e) => eprintln!(
-                "Failed to parse directive file {}: {}",
-                directive_path.display(),
-                e
-            ),
+            Err(e) => return Err(e),
         }
     }
 

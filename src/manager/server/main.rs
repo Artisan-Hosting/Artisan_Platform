@@ -10,6 +10,7 @@ use ais_common::socket::get_socket_path;
 use ais_common::system::{get_machine_id, get_system_stats};
 use ais_common::version::Version;
 use dusa_collection_utils::errors::{ErrorArray, ErrorArrayItem, WarningArray};
+use dusa_collection_utils::stringy::Stringy;
 use network::start_server;
 use simple_pretty::warn;
 use std::collections::HashMap;
@@ -38,12 +39,12 @@ async fn main() -> Result<(), ErrorArrayItem> {
                 Err(e) => {
                     warn("Aggregator is unresponsive, Calling for backup");
                     let email = Email {
-                        subject: format!("{}", machine_id),
+                        subject: format!("{}", machine_id).into(),
                         body: format!(
                             "The aggregator on system: {}. Is not running 
                     or unreachable and systemd was unable the rectify the issue: {}",
                             machine_id, e
-                        ),
+                        ).into(),
                     };
                     let _ = EmailSecure::new(email)
                         .inspect_err(|err| ErrorArray::new(vec![err.clone()]).display(false))
@@ -121,9 +122,9 @@ async fn update_git_config(new_auth: Vec<GitAuth>) -> Result<(), ErrorArrayItem>
     new_git_data.save(ARTISANCF)
 }
 
-async fn query_git_config() -> Result<HashMap<String, GitAuth>, ErrorArrayItem> {
+async fn query_git_config() -> Result<HashMap<Stringy, GitAuth>, ErrorArrayItem> {
     let git_credentials: Vec<GitAuth> = GitCredentials::new_vec()?;
-    let mut git_hashmap: HashMap<String, GitAuth> = HashMap::new();
+    let mut git_hashmap: HashMap<Stringy, GitAuth> = HashMap::new();
 
     for git_item in git_credentials {
         let name = git_item.clone().repo;

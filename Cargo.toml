@@ -1,6 +1,6 @@
 [package]
 name = "artisan_platform"
-version = "1.4.4"
+version = "1.4.6"
 edition = "2021"
 authors = [
     "Artisan Hosting",
@@ -40,7 +40,7 @@ users = "0.9.0"
 
 # Custom libraries
 recs_lib = "2.5.2"
-dusa_collection_utils = "2.5.3"
+dusa_collection_utils = "2.6.3"
 dusa = "1.2.2"
 
 # Logging
@@ -157,6 +157,10 @@ path = "src/stress/main.rs"
 [[bin]]
 name = "mail_test"
 path = "src/mail.rs"
+
+[[bin]]
+name = "test"
+path = "src/test.rs"
 
 # Library targets
 [lib]
