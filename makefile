@@ -46,8 +46,8 @@ install_deps:
 	@command -v apt >/dev/null 2>&1 && apt update && apt install -y auditd audispd-plugins openssh-server git inotify-tools python3 nano wget unzip || echo "apt not found, skipping dependency installation"
 
 install_others:
-	@python3 nvm_install.py
-	@python3 ghcli_install.py
+	@-python3 nvm_install.py
+	@-python3 ghcli_install.py
 
 # Configure sshd to set Debug level to LOGLEVEL2
 configure_sshd:
