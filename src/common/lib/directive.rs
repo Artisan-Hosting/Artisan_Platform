@@ -11,25 +11,6 @@ use walkdir::WalkDir;
 use crate::constants::SYSTEM_DIRECTIVE_PATH;
 use crate::structs::Directive;
 
-// pub fn generate_directive_hash(directive_path: PathType) -> Result<String, ErrorArrayItem> {
-//     let mut directive_file: std::fs::File = open_file(directive_path.clone(), false)?;
-
-//     let directive_parent: PathType = get_parent_dir(&directive_path);
-
-//     let service_id: String = directive_parent.to_string().replace("/var/www/ais/", "");
-
-//     let mut directive_buffer: Vec<u8> = Vec::new();
-
-//     directive_file
-//         .read_to_end(&mut directive_buffer)
-//         .map_err(|err| ErrorArrayItem::from(err))?;
-
-//     let directive_hash: String =
-//         String::from_utf8(directive_buffer).map_err(|err| ErrorArrayItem::from(err))?;
-
-//     Ok(create_hash(format!("{}_{}", directive_hash, service_id)))
-// }
-
 // The directive functions will parse dependencies or programs that need to be ran when new data is pulled down.
 pub async fn scan_directories(base_path: &str) -> Result<Vec<PathBuf>, ErrorArrayItem> {
     let mut directive_paths: Vec<PathBuf> = Vec::new();

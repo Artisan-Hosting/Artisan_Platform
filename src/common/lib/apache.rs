@@ -24,13 +24,13 @@ pub fn create_apache_config(
     base_path: &Path,
 ) -> Result<bool, ErrorArrayItem> {
     let php_fpm_config = match &directive.php_fpm_version {
-        Some(version) if version == "7.4" => {
+        Some(version) if *version == "7.4".into() => {
             r#"SetHandler "proxy:unix:/var/run/php/php7.4-fpm.sock|fcgi://localhost/""#
         }
-        Some(version) if version == "8.1" => {
+        Some(version) if *version == "8.1".into() => {
             r#"SetHandler "proxy:unix:/var/run/php/php8.1-fpm.sock|fcgi://localhost/""#
         }
-        Some(version) if version == "8.2" => {
+        Some(version) if *version == "8.2".into() => {
             r#"SetHandler "proxy:unix:/var/run/php/php8.2-fpm.sock|fcgi://localhost/""#
         }
         _ => "", // No PHP-FPM handler if version is not specified or not recognized

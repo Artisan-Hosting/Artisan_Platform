@@ -6,6 +6,8 @@ use std::{
 };
 use systemctl::Unit;
 
+use crate::structs::RestartPolicy;
+
 /// Enum representing different services.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Services {
@@ -237,6 +239,63 @@ pub fn timestamp() -> Stringy {
     let now: DateTime<Utc> = Utc::now();
     Stringy::new(now.format("%Y-%m-%d %H:%M:%S").to_string().as_str())
 }
+
+/// Creates a systemd service file based on the provided directive
+pub fn create_service_file(
+    exec_start: &str,
+    exec_pre: Option<&str>,
+    description: &str,
+    working_dir: &str,
+    user: &str,
+    group: &str,
+    restart_policy: &RestartPolicy,
+    exec_pre_as_root: bool,
+) -> Result<String, ErrorArrayItem> {
+    let mut service_file_data = String::new();
+
+    // Service unit metadata
+    service_file_data.push_str(&format!("[Unit]\n"));
+    service_file_data.push_str(&format!("Description={}\n", description));
+    service_file_data.push_str("After=network.target\n\n");
+
+    // Service section
+    service_file_data.push_str("[Service]\n");
+
+    // Permissions to run pre-commands as root if needed
+    if exec_pre_as_root {
+        service_file_data.push_str("PermissionsStartOnly=true\n");
+    }
+
+    // Working directory, user, and group
+    service_file_data.push_str(&format!("WorkingDirectory={}\n", working_dir));
+    service_file_data.push_str(&format!("User={}\n", user));
+    service_file_data.push_str(&format!("Group={}\n", group));
+    
+    // Optional pre-start command
+    if let Some(pre_command) = exec_pre {
+        service_file_data.push_str(&format!("ExecStartPre={}\n", pre_command));
+    }
+
+    // Main start command
+    service_file_data.push_str(&format!("ExecStart={}\n", exec_start));
+
+    // Restart policy
+    service_file_data.push_str(&format!("Restart={}\n", restart_policy));
+    
+    // Environment setup (customize as needed)
+    service_file_data.push_str("Environment=PATH=/usr/bin:/usr/local/bin\n");
+
+    // Installation target
+    service_file_data.push_str("\n[Install]\n");
+    service_file_data.push_str("WantedBy=multi-user.target\n");
+
+    // Adding managed by comment
+    service_file_data.push_str("\n#Service file managed by Artisan Platform\n");
+    service_file_data.push_str("\n#DO NOT MODIFY\n");
+
+    Ok(service_file_data)
+}
+
 
 #[cfg(test)]
 mod tests {
