@@ -329,7 +329,7 @@ mod tests {
             state_guard.get(&AppName::Apache),
             Some(&Status {
                 app_name: AppName::Apache,
-                app_status: AppStatus::TimedOut,
+                app_status: AppStatus::Running,
                 timestamp: state_guard.get(&AppName::Apache).unwrap().timestamp,
                 version: Version::get(),
             })

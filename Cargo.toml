@@ -12,6 +12,8 @@ license = "MIT OR Apache-2.0"
 
 [dev-dependencies]
 tempfile = "3"
+dusa_collection_utils = "2.6.3"
+
 
 [dependencies]
 # Asynchronous runtime
@@ -167,3 +169,4 @@ path = "src/test.rs"
 name = "ais_common"
 path = "src/common/lib/main.rs"
 test = false
+

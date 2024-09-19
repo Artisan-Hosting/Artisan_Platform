@@ -19,3 +19,4 @@ pub mod system;
 pub mod systemd;
 pub mod version;
 pub mod monitor;
+pub mod pm2;
