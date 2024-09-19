@@ -11,7 +11,7 @@ mod tests {
 
     fn setup_project(app_type: AppType) -> NodeProject {
         let test_project_name = "artisan_test";
-        let test_project_path = "/var/www/ais/26f9fbcb";
+        let test_project_path = "/var/www/ais/12c15320";
 
         // Ensure the dummy project exists for testing
         if !Path::new(test_project_path).exists() {
