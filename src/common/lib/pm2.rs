@@ -74,6 +74,17 @@ impl Pm2Manager {
             // .expect("Failed to stop application with PM2")
     }
 
+    /// Building the application
+    pub fn install(project: &NodeProject) -> Result<Output, ErrorArrayItem> {
+        Command::new("npm")
+            .arg("install")
+            .current_dir(&project.path)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .output()
+            .map_err(|err| ErrorArrayItem::from(err))
+    }
+
     /// Rebuilds the Node.js application (install dependencies, build, and restart)
     pub fn rebuild_and_restart(project: &NodeProject) -> Result<Output, ErrorArrayItem> {
         // Step 1: Install dependencies using npm install
