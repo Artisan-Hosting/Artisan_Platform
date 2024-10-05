@@ -26,7 +26,7 @@ async fn extract_links(client: &Client, url: &str) -> Vec<String> {
                 let selector = Selector::parse("a[href]").unwrap();
                 for element in document.select(&selector) {
                     if let Some(href) = element.value().attr("href") {
-                        if href.starts_with('/') || href.starts_with("http") {
+                        if href.starts_with('/') || href.starts_with("https") {
                             let full_url = if href.starts_with('/') {
                                 format!("{}{}", url.trim_end_matches('/'), href)
                             } else {
